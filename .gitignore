@@ -89,6 +89,5 @@ vite.config.*.timestamp-*
 # Optional: Keep .env.example for reference
 !.env.example
 
-# Optional: Keep references directory if needed for documentation
-# Uncomment if you want to ignore the references directory
-# references/
+# References directory (documentation/examples from other projects)
+references/

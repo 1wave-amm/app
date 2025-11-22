@@ -1,15 +1,15 @@
 # Wave - Setup Guide
 
-## 🚀 Struttura dell'Applicazione
+## 🚀 Application Structure
 
-L'applicazione è stata creata con una struttura modulare e componenti atomic riutilizzabili.
+The application has been created with a modular structure and reusable atomic components.
 
-### 📁 Struttura Directory
+### 📁 Directory Structure
 
 ```
 src/
 ├── components/
-│   ├── atomic/          # Componenti atomic riutilizzabili
+│   ├── atomic/          # Reusable atomic components
 │   │   ├── Container.tsx
 │   │   └── CenteredLayout.tsx
 │   ├── layout/          # Layout components
@@ -22,7 +22,7 @@ src/
 │   │   ├── CreateVaultWizard.tsx
 │   │   ├── TokenMultiSelect.tsx
 │   │   └── VaultActions.tsx
-│   └── ui/              # shadcn/ui components con varianti glass
+│   └── ui/              # shadcn/ui components with glass variants
 │
 ├── pages/               # Route pages
 │   ├── Login.tsx
@@ -37,113 +37,113 @@ src/
 
 ## 🎨 Design System
 
-### Componenti Glassmorphism
+### Glassmorphism Components
 
-Tutti i componenti shadcn/ui supportano varianti glassmorphism:
+All shadcn/ui components support glassmorphism variants:
 
 - **Card**: `variant="glass" | "glass-strong" | "glass-apple"`
 - **Button**: `variant="glass" | "glass-apple"`
 - **Input**: `variant="glass"`
 - **Textarea**: `variant="glass"`
 - **Dialog**: `variant="glass" | "glass-apple"`
-- **Select**: `variant="glass" | "glass-apple"` (sul SelectContent)
+- **Select**: `variant="glass" | "glass-apple"` (on SelectContent)
 
-### Utility Classes CSS
+### CSS Utility Classes
 
-Classi utility disponibili in `src/index.css`:
+Utility classes available in `src/index.css`:
 
-- `.glass` - Glass effect standard
-- `.glass-strong` - Glass effect più forte
+- `.glass` - Standard glass effect
+- `.glass-strong` - Stronger glass effect
 - `.glass-apple` - Apple-style liquid glass
-- `.glass-hover` - Hover effect per glass components
+- `.glass-hover` - Hover effect for glass components
 
 ## 🔐 Routing
 
-L'applicazione usa React Router con route protette:
+The application uses React Router with protected routes:
 
-- `/login` - Pagina di login/registrazione
-- `/dashboard` - Dashboard principale con swap
-- `/create-vault` - Wizard per creare vault
-- `/vaults` - Lista di tutti i vaults
-- `/vaults/:address` - Dettaglio vault con deposit/withdraw
+- `/login` - Login/registration page
+- `/dashboard` - Main dashboard with swap
+- `/create-vault` - Wizard to create vault
+- `/vaults` - List of all vaults
+- `/vaults/:address` - Vault detail with deposit/withdraw
 
-## 📦 Dipendenze Principali
+## 📦 Main Dependencies
 
 - `react-router-dom` - Routing
-- `@factordao/tokenlist` - Token list e metadata
-- `shadcn/ui` - Componenti UI
+- `@factordao/tokenlist` - Token list and metadata
+- `shadcn/ui` - UI components
 - `wagmi` + `@rainbow-me/rainbowkit` - Web3 integration
 - `@tanstack/react-query` - Data fetching
 
-## 🔧 Variabili d'Ambiente
+## 🔧 Environment Variables
 
-Assicurati di avere nel file `.env`:
+Make sure you have in the `.env` file:
 
 ```env
 VITE_STATS_API_BASE_URL=your_api_url
-VITE_NPM_TOKEN=your_npm_token (se necessario)
+VITE_NPM_TOKEN=your_npm_token (if needed)
 ```
 
-## 🎯 Funzionalità Implementate
+## 🎯 Implemented Features
 
-### ✅ Login/Registrazione
-- Pagina di login con wallet connection
-- Redirect automatico alla dashboard quando connesso
+### ✅ Login/Registration
+- Login page with wallet connection
+- Automatic redirect to dashboard when connected
 
 ### ✅ Dashboard
-- Swap interface simile a Uniswap
-- Token selector con ricerca
-- Input con glass effect
+- Uniswap-like swap interface
+- Token selector with search
+- Input with glass effect
 
 ### ✅ Create Vault Wizard
-- Step 1: Basic Info (nome con prefisso "ethGlobal - wave: ")
+- Step 1: Basic Info (name with prefix "ethGlobal - wave: ")
 - Step 2: Fees (deposit, withdraw, management)
-- Step 3: Whitelisted Tokens (multi-select con chips)
-- Step 4: Review e deploy
-- Generazione automatica delle pairs dai token selezionati
+- Step 3: Whitelisted Tokens (multi-select with chips)
+- Step 4: Review and deploy
+- Automatic pair generation from selected tokens
 
 ### ✅ Vaults List
-- Fetch da `VITE_STATS_API_BASE_URL/strategies`
-- Filtro automatico per vault con nome che inizia con "ethGlobal - wave: "
-- Search bar per filtrare vaults
-- Card con glass effect
+- Fetch from `VITE_STATS_API_BASE_URL/strategies`
+- Automatic filter for vaults with name starting with "ethGlobal - wave: "
+- Search bar to filter vaults
+- Card with glass effect
 
 ### ✅ Vault Detail
-- Informazioni complete del vault
-- Tab Deposit/Withdraw
-- Token selector per deposit/withdraw
-- Preview delle transazioni
+- Complete vault information
+- Deposit/Withdraw tabs
+- Token selector for deposit/withdraw
+- Transaction preview
 
-## 🚧 TODO - Integrazioni SDK
+## 🚧 TODO - SDK Integrations
 
-Le seguenti funzionalità richiedono integrazione con l'SDK:
+The following features require SDK integration:
 
 1. **Create Vault Wizard** - Step 4: Deploy vault
-   - Integrare con `@factordao/sdk-studio` per deploy
-   - Implementare transazioni multiple (deploy, configure, etc.)
+   - Integrate with `@factordao/sdk-studio` for deployment
+   - Implement multiple transactions (deploy, configure, etc.)
 
 2. **Vault Actions** - Deposit/Withdraw
-   - Integrare con `useProVaultDeposit` e `useProVaultWithdraw`
-   - Gestire approvazioni token
-   - Mostrare preview accurato
+   - Integrate with `useProVaultDeposit` and `useProVaultWithdraw`
+   - Handle token approvals
+   - Show accurate preview
 
 3. **Swap Interface**
-   - Integrare con Aqua SDK per simulazione swap
-   - Calcolare output amount
-   - Gestire routing multi-hop
+   - Integrate with Aqua SDK for swap simulation
+   - Calculate output amount
+   - Handle multi-hop routing
 
 ## 🎨 Styling
 
-L'app usa:
-- **Tailwind CSS** per styling
-- **Glassmorphism effects** per tutti i componenti
-- **Gradient backgrounds** per il layout principale
-- **Rounded corners** (rounded-full per buttons, rounded-lg per cards)
+The app uses:
+- **Tailwind CSS** for styling
+- **Glassmorphism effects** for all components
+- **Gradient backgrounds** for the main layout
+- **Rounded corners** (rounded-full for buttons, rounded-lg for cards)
 
-## 📝 Note
+## 📝 Notes
 
-- Tutti i nomi vault devono iniziare con "ethGlobal - wave: " per essere riconosciuti
-- I token vengono caricati da `@factordao/tokenlist` usando il chainId corrente
-- L'app è responsive e ottimizzata per mobile
+- All vault names must start with "ethGlobal - wave: " to be recognized
+- Tokens are loaded from `@factordao/tokenlist` using the current chainId
+- The app is responsive and optimized for mobile
 
 

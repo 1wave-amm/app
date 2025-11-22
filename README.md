@@ -1,110 +1,110 @@
 # Wave - Liquidity as a Service
 
-Frontend React per Wave, una piattaforma **liquidity-as-a-service permissionless** con rebalancing on-chain e mini-DEX aggregato, costruita su **1inch Aqua Protocol**.
+React frontend for Wave, a **permissionless liquidity-as-a-service** platform with on-chain rebalancing and aggregated mini-DEX, built on **1inch Aqua Protocol**.
 
-## 🚀 Stack Tecnologico
+## 🚀 Tech Stack
 
-- **React 18** con **TypeScript**
-- **Vite** come build tool
-- **pnpm** come package manager
-- **viem** per interazioni con Ethereum
-- **wagmi** per hooks React per Web3
-- **RainbowKit** per connessione wallet
-- **Tailwind CSS** per styling
-- **React Query** per data fetching
+- **React 18** with **TypeScript**
+- **Vite** as build tool
+- **pnpm** as package manager
+- **viem** for Ethereum interactions
+- **wagmi** for React hooks for Web3
+- **RainbowKit** for wallet connection
+- **Tailwind CSS** for styling
+- **React Query** for data fetching
 
-## 📦 Installazione
+## 📦 Installation
 
 ```bash
-# Installa le dipendenze
+# Install dependencies
 pnpm install
 ```
 
-## ⚙️ Configurazione
+## ⚙️ Configuration
 
-1. Copia il file `.env.example` in `.env`:
+1. Copy the `.env.example` file to `.env`:
 ```bash
 cp .env.example .env
 ```
 
-2. Ottieni un WalletConnect Project ID da [https://cloud.walletconnect.com/](https://cloud.walletconnect.com/) e aggiungilo al file `.env`:
+2. Get a WalletConnect Project ID from [https://cloud.walletconnect.com/](https://cloud.walletconnect.com/) and add it to the `.env` file:
 ```
 VITE_WALLETCONNECT_PROJECT_ID=your_project_id_here
 ```
 
-## 🏃 Avvio del Progetto
+## 🏃 Running the Project
 
 ```bash
-# Modalità sviluppo
+# Development mode
 pnpm dev
 
-# Build per produzione
+# Production build
 pnpm build
 
-# Preview della build
+# Preview build
 pnpm preview
 ```
 
-## 📁 Struttura del Progetto
+## 📁 Project Structure
 
 ```
 app/
 ├── src/
 │   ├── lib/
 │   │   └── web3/
-│   │       └── config.ts      # Configurazione Wagmi e RainbowKit
-│   ├── App.tsx                # Componente principale
+│   │       └── config.ts      # Wagmi and RainbowKit configuration
+│   ├── App.tsx                # Main component
 │   ├── main.tsx               # Entry point
-│   └── index.css              # Stili globali (Tailwind)
+│   └── index.css              # Global styles (Tailwind)
 ├── package.json
 ├── vite.config.ts
 ├── tailwind.config.js
 └── tsconfig.json
 ```
 
-## 🔌 Configurazione Web3
+## 🔌 Web3 Configuration
 
-Il progetto è configurato con:
+The project is configured with:
 
-- **Chain supportate**: Ethereum Mainnet, Sepolia, Arbitrum, Optimism, Base
-- **Wallet supportati**: Tutti i wallet compatibili con WalletConnect (MetaMask, WalletConnect, Coinbase Wallet, etc.)
+- **Supported chains**: Ethereum Mainnet, Sepolia, Arbitrum, Optimism, Base
+- **Supported wallets**: All wallets compatible with WalletConnect (MetaMask, WalletConnect, Coinbase Wallet, etc.)
 
-La configurazione si trova in `src/lib/web3/config.ts`.
+Configuration is located in `src/lib/web3/config.ts`.
 
 ## 🎨 Design System
 
-Il progetto usa Tailwind CSS con un design system personalizzato basato sul tema DeFi:
+The project uses Tailwind CSS with a custom design system based on the DeFi theme:
 
-- **Colori primari**: Sky blue (Aqua-inspired)
+- **Primary colors**: Sky blue (Aqua-inspired)
 - **Background**: Dark slate (#0f172a)
 - **Card background**: #1e293b
 
-Vedi `tailwind.config.js` per i dettagli completi.
+See `tailwind.config.js` for complete details.
 
-## 📚 Documentazione
+## 📚 Documentation
 
-- [Design Frontend](./WAVE_FRONTEND_DESIGN.md)
-- [Analisi Protocollo Aqua](./AQUA_PROTOCOL_ANALISI.md)
-- [Dettagli Smart Contract](./AQUA_SMART_CONTRACTS_DETAILS.md)
+- [Frontend Design](./WAVE_FRONTEND_DESIGN.md)
+- [Aqua Protocol Analysis](./AQUA_PROTOCOL_ANALISI.md)
+- [Smart Contract Details](./AQUA_SMART_CONTRACTS_DETAILS.md)
 
-## 🛠️ Sviluppo
+## 🛠️ Development
 
-### Aggiungere nuove dipendenze
+### Adding new dependencies
 
 ```bash
 pnpm add <package-name>
 ```
 
-### Aggiungere dipendenze di sviluppo
+### Adding development dependencies
 
 ```bash
 pnpm add -D <package-name>
 ```
 
-## 📝 Note
+## 📝 Notes
 
-- Il progetto usa **Vite** invece di Create React App per performance migliori
-- **RainbowKit** gestisce automaticamente la connessione wallet e la UI
-- **wagmi** fornisce hooks React per interagire con la blockchain
-- **viem** è la libreria sottostante per le operazioni low-level
+- The project uses **Vite** instead of Create React App for better performance
+- **RainbowKit** automatically handles wallet connection and UI
+- **wagmi** provides React hooks to interact with the blockchain
+- **viem** is the underlying library for low-level operations
 
