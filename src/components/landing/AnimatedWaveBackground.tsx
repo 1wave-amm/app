@@ -80,7 +80,7 @@ export function AnimatedWaveBackground() {
       }
 
       // Disegna una singola forma d'onda elegante
-      const centerY = height * 0.65 // Posizionata più in basso
+      const centerY = height * 0.55 // Posizionata leggermente più in alto
       const amplitude = 100 // Ampiezza moderata
       const frequency = 0.006 // Frequenza bassa per movimento lento
       const speed = 0.012 // Movimento lento e fluido
