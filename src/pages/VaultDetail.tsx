@@ -145,20 +145,22 @@ export function VaultDetail() {
         const addressLower = token.address?.toLowerCase()
         const whitelistedToken = whitelistedTokensMap.get(addressLower || '')
         
-        // If token is whitelisted, use whitelisted data
+        // Try to get from FactorTokenlist first (most accurate source for decimals)
+        const tokenlistToken = allTokens.find((t: any) => 
+          t.address?.toLowerCase() === addressLower
+        )
+        
+        // If token is whitelisted, use whitelisted data but keep decimals from tokenlist
         if (whitelistedToken) {
           return {
             ...token,
             symbol: whitelistedToken.symbol || token.symbol,
             name: whitelistedToken.name || token.name,
             logoURI: whitelistedToken.logoUrl || token.logoURI,
+            // Use decimals from tokenlist if available, otherwise keep original
+            decimals: tokenlistToken?.decimals ?? token.decimals ?? 18,
           }
         }
-        
-        // Try to get from FactorTokenlist
-        const tokenlistToken = allTokens.find((t: any) => 
-          t.address?.toLowerCase() === addressLower
-        )
         
         if (tokenlistToken) {
           return {
@@ -166,6 +168,8 @@ export function VaultDetail() {
             symbol: tokenlistToken.symbol || token.symbol,
             name: tokenlistToken.name || token.name,
             logoURI: tokenlistToken.logoUrl || token.logoURI,
+            // Use decimals from tokenlist (most accurate source)
+            decimals: tokenlistToken.decimals ?? token.decimals ?? 18,
           }
         }
         
@@ -183,7 +187,7 @@ export function VaultDetail() {
   }, [vault, chainId])
 
   // Fetch user shares
-  const { userShares } = useVaultUserShares({
+  const { userShares, refetchShares } = useVaultUserShares({
     vaultAddress: enrichedVault?.address as Address,
     chainId: enrichedVault?.chainId,
     pricePerShareUsd: enrichedVault?.pricePerShareUsd,
@@ -470,6 +474,10 @@ export function VaultDetail() {
                   vault={vaultWithShares}
                   mode="deposit"
                   availableTokens={depositTokens}
+                  onBalanceUpdate={() => {
+                    // Refresh shares balance after deposit
+                    refetchShares()
+                  }}
                 />
               )}
             </TabsContent>
@@ -479,6 +487,10 @@ export function VaultDetail() {
                   vault={vaultWithShares}
                   mode="withdraw"
                   availableTokens={withdrawTokens}
+                  onBalanceUpdate={() => {
+                    // Refresh shares balance after withdraw
+                    refetchShares()
+                  }}
                 />
               )}
             </TabsContent>
