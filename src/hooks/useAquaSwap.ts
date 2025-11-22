@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Address, createPublicClient, http, parseUnits } from 'viem'
 import { base } from 'viem/chains'
-import { useSendTransaction, useWriteContract, useReadContract } from 'wagmi'
+import { useWriteContract, useReadContract } from 'wagmi'
 import { erc20ABI } from '@factordao/contracts'
-import { XYC_SWAP_ADDRESS, percentageToBps } from '@/lib/constants/swap'
+import { XYC_SWAP_ADDRESS } from '@/lib/constants/swap'
 import { getBaseRpcUrl } from '@/lib/constants/rpc'
 import xycswapABI from '@/lib/abis/xycswap.json'
 import type { XYCSwapStrategy } from '@/lib/utils/swap'
@@ -24,10 +24,8 @@ interface UseAquaSwapParams {
 
 export function useAquaSwap({
   tokenIn,
-  tokenOut,
   amountIn,
   tokenInDecimals,
-  tokenOutDecimals,
   slippageBps,
   recipient,
   xycStrategy,
@@ -36,7 +34,6 @@ export function useAquaSwap({
   onSuccess,
 }: UseAquaSwapParams) {
   const [isLoading, setIsLoading] = useState(false)
-  const { sendTransactionAsync } = useSendTransaction()
   const { writeContractAsync } = useWriteContract()
   const [steps, setSteps] = useState({
     approve: 'idle' as 'idle' | 'loading' | 'success' | 'error',
@@ -69,22 +66,8 @@ export function useAquaSwap({
     : false
 
   const handleSwap = async () => {
-    console.log('[useAquaSwap] handleSwap called', {
-      xycStrategy: !!xycStrategy,
-      quote: quote?.toString(),
-      amountInBN: amountInBN.toString(),
-      amountOutMin: amountOutMin.toString(),
-      recipient,
-    })
-
     if (!xycStrategy || !quote || amountInBN === 0n || amountOutMin === 0n) {
       const error = new Error('Invalid swap parameters')
-      console.error('[useAquaSwap] Invalid parameters:', {
-        xycStrategy: !!xycStrategy,
-        quote: !!quote,
-        amountInBN: amountInBN.toString(),
-        amountOutMin: amountOutMin.toString(),
-      })
       throw error
     }
 
@@ -112,12 +95,10 @@ export function useAquaSwap({
 
       // Step 1: Approve if needed
       if (needsApprovalCheck) {
-        console.log('[useAquaSwap] Approval needed, current allowance:', currentAllowanceCheck.toString())
         setSteps({ approve: 'loading', swap: 'idle' })
 
         // Approve exact amount from input
         const approveAmount = amountInBN
-        console.log('[useAquaSwap] Approving amount:', approveAmount.toString(), `(${amountIn} tokens with ${tokenInDecimals} decimals)`)
 
         const approveHash = await writeContractAsync({
           address: tokenIn,
@@ -127,8 +108,6 @@ export function useAquaSwap({
           account: recipient,
           args: [XYC_SWAP_ADDRESS, approveAmount],
         })
-
-        console.log('[useAquaSwap] Approval transaction hash:', approveHash)
 
         // Wait for approval confirmation
         await publicClient.waitForTransactionReceipt({ hash: approveHash })
@@ -140,13 +119,6 @@ export function useAquaSwap({
 
       // Step 2: Execute swap
       setSteps((prev) => ({ ...prev, swap: 'loading' }))
-      console.log('[useAquaSwap] Executing swap with params:', {
-        strategy: xycStrategy,
-        zeroForOne,
-        amountInBN: amountInBN.toString(),
-        amountOutMin: amountOutMin.toString(),
-        recipient,
-      })
 
       const swapHash = await writeContractAsync({
         address: XYC_SWAP_ADDRESS,
@@ -156,8 +128,6 @@ export function useAquaSwap({
         account: recipient,
         args: [xycStrategy, zeroForOne, amountInBN, amountOutMin, recipient, '0x' as `0x${string}`],
       })
-
-      console.log('[useAquaSwap] Swap transaction hash:', swapHash)
 
       // Wait for swap confirmation (reuse publicClient from above)
 
@@ -170,7 +140,6 @@ export function useAquaSwap({
       setSteps({ approve: 'success', swap: 'success' })
       onSuccess?.()
     } catch (error: any) {
-      console.error('[useAquaSwap] Error:', error)
       setSteps((prev) => ({
         approve: prev.approve === 'loading' ? 'error' : prev.approve,
         swap: prev.swap === 'loading' ? 'error' : prev.swap,

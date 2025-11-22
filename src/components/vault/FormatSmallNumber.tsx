@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { cn } from '@/lib/utils'
 
 interface FormatSmallNumberProps {
@@ -8,9 +7,6 @@ interface FormatSmallNumberProps {
 }
 
 export function FormatSmallNumber({ number, className, decimals }: FormatSmallNumberProps) {
-  // Generate stable key based on number value
-  const tooltipKey = useMemo(() => `tooltip-${number}`, [number])
-  
   // Convert to full decimal string representation (avoid scientific notation)
   // Use enough precision to capture the number accurately
   const numberStr = number.toFixed(20).replace(/\.?0+$/, '')

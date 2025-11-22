@@ -4,13 +4,14 @@ import { Input } from "@/components/ui/input"
 import { ArrowDown, Loader2, CheckCircle2, XCircle } from "lucide-react"
 import { TokenSelector } from "./TokenSelector"
 import { SlippageSelector } from "./SlippageSelector"
+import { PairSelector } from "./PairSelector"
 import { FactorTokenlist } from "@factordao/tokenlist"
 import { useAccount, useReadContract } from "wagmi"
 import { useConnectModal } from "@rainbow-me/rainbowkit"
 import { formatUnits, Address } from "viem"
 import { useSwapQuote } from "@/hooks/useSwapQuote"
 import { useAquaSwap } from "@/hooks/useAquaSwap"
-import { percentageToBps, DEFAULT_SLIPPAGE_BPS } from "@/lib/constants/swap"
+import { percentageToBps } from "@/lib/constants/swap"
 
 // ERC20 ABI for balanceOf
 const ERC20_ABI = [
@@ -30,6 +31,8 @@ export function SwapInterface() {
   const [amountOut, setAmountOut] = useState("")
   const [isHoveringSell, setIsHoveringSell] = useState(false)
   const [slippage, setSlippage] = useState(1) // Default 1%
+  const [selectedPairHash, setSelectedPairHash] = useState<string | null>(null)
+  const [availablePairs, setAvailablePairs] = useState<any[]>([])
   const { chainId = 8453, isConnected, address } = useAccount() // BASE chain
   const { openConnectModal } = useConnectModal()
 
@@ -85,12 +88,27 @@ export function SwapInterface() {
   }, [tokenOut, chainId])
 
   // Get swap quote
-  const { quote, isLoading: isLoadingQuote, error: quoteError, xycStrategy, zeroForOne } = useSwapQuote({
+  const { quote, isLoading: isLoadingQuote, error: quoteError, xycStrategy, zeroForOne, availablePairs: pairsFromHook } = useSwapQuote({
     tokenIn: tokenIn as Address | null,
     tokenOut: tokenOut as Address | null,
     amountIn,
     tokenInDecimals: selectedTokenIn?.decimals || 18,
+    selectedPairHash,
   })
+
+  // Update available pairs and auto-select best pair when pairs are loaded
+  useEffect(() => {
+    if (pairsFromHook.length > 0) {
+      setAvailablePairs(pairsFromHook)
+      // Auto-select first pair (best TVL) if none selected
+      if (!selectedPairHash && pairsFromHook[0]?.pairHash) {
+        setSelectedPairHash(pairsFromHook[0].pairHash)
+      }
+    } else {
+      setAvailablePairs([])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pairsFromHook])
 
   // Auto-update amountOut when quote changes
   useEffect(() => {
@@ -268,6 +286,17 @@ export function SwapInterface() {
         </div>
       </div>
 
+      {/* Pair Selector - Show if multiple pairs available */}
+      {tokenIn && tokenOut && availablePairs.length > 1 && (
+        <div className="pt-2">
+          <PairSelector
+            pairs={availablePairs}
+            selectedPairHash={selectedPairHash}
+            onPairSelect={setSelectedPairHash}
+          />
+        </div>
+      )}
+
       {/* Slippage Selector */}
       {tokenIn && tokenOut && amountIn && (
         <div className="pt-2">
@@ -345,7 +374,6 @@ export function SwapInterface() {
               try {
                 await handleSwap()
               } catch (error: any) {
-                console.error('[SwapInterface] Swap error:', error)
                 // Error is already handled in useAquaSwap
               }
             }

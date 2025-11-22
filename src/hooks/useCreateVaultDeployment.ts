@@ -1,13 +1,13 @@
 import { useCallback } from 'react'
-import { useAccount, useWalletClient, usePublicClient } from 'wagmi'
+import { useAccount, useWalletClient, usePublicClient, useSignMessage } from 'wagmi'
 import { StudioProFactory, StudioProVault, StrategyBuilder } from '@factordao/sdk-studio'
 import { ChainId, MAX_UINT_256, valueToBigInt } from '@factordao/sdk'
 import { getContractAddressesForChainOrThrow } from '@factordao/sdk-studio'
 import { FactorTokenlist } from '@factordao/tokenlist'
 import { erc20ABI } from '@factordao/contracts'
-import { parseEther, Address } from 'viem'
+import { parseEther, parseUnits, formatUnits, Address, getAddress } from 'viem'
 import { useTransactionFlow, TransactionFlowStep } from './useTransactionFlow'
-import { getBaseTokenByAddress } from '@/lib/constants/baseTokens'
+import { getBaseTokenByAddress, getAccountingAdapterForToken } from '@/lib/constants/baseTokens'
 
 const environment = 'testing' as const
 const chainId = ChainId.BASE
@@ -48,17 +48,10 @@ export function useCreateVaultDeployment(params: VaultDeploymentParams) {
   const { address: userAddress } = useAccount()
   const { data: walletClient } = useWalletClient()
   const publicClient = usePublicClient()
+  const { signMessageAsync } = useSignMessage()
 
-  const { config, feeReceiverAddress, alchemyApiKey } = params
+  const { config, feeReceiverAddress } = params
 
-  console.log('🔧 useCreateVaultDeployment initialized with:', {
-    userAddress,
-    hasWalletClient: !!walletClient,
-    hasPublicClient: !!publicClient,
-    config,
-    feeReceiverAddress,
-    hasAlchemyApiKey: !!alchemyApiKey
-  })
 
   // Step 1: Deploy Vault
   const deployVault = useCallback(
@@ -66,8 +59,6 @@ export function useCreateVaultDeployment(params: VaultDeploymentParams) {
       if (!userAddress || !walletClient || !publicClient) {
         throw new Error('Wallet not connected')
       }
-
-      console.log('=== Step 1: Deploy Vault ===')
 
       const tokenlist = new FactorTokenlist(chainId)
       
@@ -89,20 +80,58 @@ export function useCreateVaultDeployment(params: VaultDeploymentParams) {
         factor_studio_pro_factory 
       } = getContractAddressesForChainOrThrow(chainId, environment)
 
-      // Prepare initial deposit (1600 wei)
-      const initialDeposit = '1600'
+      // Use fixed Chainlink accounting adapter address (normalize to checksum format)
+      const CHAINLINK_ACCOUNTING_ADAPTER = getAddress('0xE06d1274fFA08bA9965D6BE89afea04B811260F4')
+      const denominatorAccountingAdapter = CHAINLINK_ACCOUNTING_ADAPTER
 
-      // Approve initial deposit token
-      console.log('Approving initial deposit...')
-      const approveTx = await walletClient.writeContract({
+      // Prepare initial deposit (0.0016 units of the token, converted to smallest unit)
+      // For example: 0.0016 USDC (6 decimals) = 1600
+      // For example: 0.0016 WETH (18 decimals) = 1600000000000000
+      // The SDK expects the value in smallest units (wei) as a string
+      const initialDepositAmount = '0.0016' // Use string directly to avoid precision issues
+      const tokenDecimals = denominatorToken.decimals || 18
+      const initialDeposit = parseUnits(
+        initialDepositAmount,
+        tokenDecimals
+      ).toString()
+
+      // Check user balance before approving
+      const userBalanceRaw = await publicClient.readContract({
         address: denominatorToken.address as Address,
         abi: erc20ABI,
-        functionName: 'approve',
-        args: [factor_studio_pro_factory as Address, valueToBigInt(MAX_UINT_256.toString())],
+        functionName: 'balanceOf',
+        args: [userAddress],
       })
+      const userBalanceFormatted = formatUnits(userBalanceRaw, tokenDecimals)
+      
+      if (BigInt(userBalanceRaw.toString()) < BigInt(initialDeposit)) {
+        throw new Error(
+          `Insufficient balance. Need ${initialDepositAmount} ${denominatorToken.symbol}, but have ${userBalanceFormatted} ${denominatorToken.symbol}`
+        )
+      }
 
-      await publicClient.waitForTransactionReceipt({ hash: approveTx })
-      console.log('Approved at:', approveTx)
+      // Check current allowance before approving
+      const currentAllowance = await publicClient.readContract({
+        address: denominatorToken.address as Address,
+        abi: erc20ABI,
+        functionName: 'allowance',
+        args: [userAddress, factor_studio_pro_factory as Address],
+      })
+      
+      const initialDepositBNForApproval = parseUnits(initialDeposit, tokenDecimals)
+      const needsApproval = currentAllowance < initialDepositBNForApproval
+      
+      if (needsApproval) {
+        // Approve initial deposit token only if needed
+        const approveTx = await walletClient.writeContract({
+          address: denominatorToken.address as Address,
+          abi: erc20ABI,
+          functionName: 'approve',
+          args: [factor_studio_pro_factory as Address, valueToBigInt(MAX_UINT_256.toString())],
+        })
+
+        await publicClient.waitForTransactionReceipt({ hash: approveTx })
+      }
 
       // Build deployment config
       const proFactory = new StudioProFactory({
@@ -121,18 +150,17 @@ export function useCreateVaultDeployment(params: VaultDeploymentParams) {
         name: config.name,
         symbol: config.name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20).toUpperCase(),
         configParams: {
-          assetDenominatorAddress: denominatorToken.address,
-          assetDenominatorAccountingAddress: factor_chainlink_accounting_adapter_pro,
+          assetDenominatorAddress: denominatorToken.address as Address,
+          assetDenominatorAccountingAddress: denominatorAccountingAdapter,
           upgradeTimelockBN: ONE_DAY_IN_SECONDS * 2,
           cooldownTimeBN: ONE_SECOND,
           upgradeable: true,
           initialAssetAddresses: config.whitelistedTokens as Address[],
           initialDepositAssetAddresses: config.whitelistedTokens as Address[],
           initialWithdrawAssetAddresses: config.whitelistedTokens as Address[],
-          // All whitelisted tokens are standard tokens (not aTokens or special tokens),
-          // so they all use Chainlink accounting adapter
+          // Use fixed Chainlink accounting adapter for all tokens
           initialAssetAccountingAddresses: config.whitelistedTokens.map(
-            () => factor_chainlink_accounting_adapter_pro
+            () => CHAINLINK_ACCOUNTING_ADAPTER
           ) as Address[],
           initialDebtAddresses: [] as Address[],
           initialDebtAccountingAddresses: [] as Address[],
@@ -152,15 +180,12 @@ export function useCreateVaultDeployment(params: VaultDeploymentParams) {
         },
       }
 
-      console.log('Deploying vault with config:', deploymentConfig)
-
       const txData = proFactory.deployVault(deploymentConfig as any)
       const hash = await walletClient.sendTransaction({
         ...txData,
         gas: 8000000n,
       })
 
-      console.log('Waiting for vault deployment...')
       const receipt = await publicClient.waitForTransactionReceipt({ hash })
       
       // Extract vault address from logs
@@ -169,8 +194,6 @@ export function useCreateVaultDeployment(params: VaultDeploymentParams) {
       if (!vaultAddress) {
         throw new Error('Could not determine vault address from receipt')
       }
-
-      console.log('✅ Vault deployed at:', vaultAddress)
 
       return {
         vaultAddress,
@@ -187,10 +210,7 @@ export function useCreateVaultDeployment(params: VaultDeploymentParams) {
         throw new Error('Wallet not connected')
       }
 
-      console.log('=== Step 2: Set Pairs + Publish Pairs ===')
-
       const { vaultAddress } = prevResult
-      const tokenlist = new FactorTokenlist(chainId)
 
       const proVault = new StudioProVault({
         chainId,
@@ -214,7 +234,6 @@ export function useCreateVaultDeployment(params: VaultDeploymentParams) {
         const baseToken1 = getBaseTokenByAddress(token1Address)
 
         if (!baseToken0 || !baseToken1) {
-          console.warn(`Skipping pair ${pair.pairId}: tokens not found`)
           continue
         }
 
@@ -233,9 +252,6 @@ export function useCreateVaultDeployment(params: VaultDeploymentParams) {
         // Convert fee percentage to basis points (e.g., 0.3% -> 30 bps)
         const feeBps = Math.round(pair.fee * 100)
 
-        console.log(`Setting pair: ${baseToken0.symbol}/${baseToken1.symbol} with fee ${feeBps} bps`)
-        console.log(`  Chainlink feeds: ${baseToken0.symbol}=${feed0}, ${baseToken1.symbol}=${feed1}`)
-
         const setPairData = sbEncoder.adapter.aqua.setPair({
           token0: token0Address as Address,
           token1: token1Address as Address,
@@ -253,7 +269,6 @@ export function useCreateVaultDeployment(params: VaultDeploymentParams) {
       setPairTransactions.push(publishPairsData)
 
       // Execute all as a batch through executeByManager
-      console.log(`Executing ${setPairTransactions.length} transactions (setPairs + publishPairs)...`)
       const executeData = proVault.executeByManager(setPairTransactions)
       
       const tx = await walletClient.sendTransaction({
@@ -261,24 +276,57 @@ export function useCreateVaultDeployment(params: VaultDeploymentParams) {
         gas: 8000000n,
       })
 
-      console.log('Waiting for transaction...')
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: tx })
-
-      console.log('✅ Pairs set and published!')
+      await publicClient.waitForTransactionReceipt({ hash: tx })
 
       return { vaultAddress, txHash: tx }
     },
     [userAddress, walletClient, publicClient, config]
   )
 
-  // Step 3: Add Deposit Strategy
-  const addDepositStrategy = useCallback(
+  // Step 3: Add Public Strategy
+  const addPublicStrategy = useCallback(
     async (_: VaultDeploymentParams, prevResult: DeployVaultResult) => {
       if (!userAddress || !walletClient || !publicClient) {
         throw new Error('Wallet not connected')
       }
 
-      console.log('=== Step 3: Add Deposit Strategy ===')
+      const { vaultAddress } = prevResult
+
+      const proVault = new StudioProVault({
+        chainId,
+        vaultAddress,
+        environment,
+      })
+
+      // Encode strategy using SB
+      const sbEncoder = new StrategyBuilder({
+        chainId,
+        isProAdapter: true,
+        environment,
+      })
+      sbEncoder.adapter.aqua.publishPairs()
+      const blocks = sbEncoder.getTransactions()
+
+      // Execute by manager
+      const executeData = proVault.setPublicStrategy(0, blocks)
+      const tx = await walletClient.sendTransaction({
+        ...executeData,
+        gas: 8000000n,
+      })
+
+      await publicClient.waitForTransactionReceipt({ hash: tx })
+
+      return { vaultAddress, txHash: tx }
+    },
+    [userAddress, walletClient, publicClient]
+  )
+
+  // Step 4: Add Deposit Strategy
+  const addDepositStrategy = useCallback(
+    async (_: VaultDeploymentParams, prevResult: DeployVaultResult) => {
+      if (!userAddress || !walletClient || !publicClient) {
+        throw new Error('Wallet not connected')
+      }
 
       const { vaultAddress } = prevResult
 
@@ -295,10 +343,8 @@ export function useCreateVaultDeployment(params: VaultDeploymentParams) {
       })
 
       // Build deposit strategy: publishPairs on each deposit
-      const executeByManagerData = sbEncoder.adapter.aqua.publishPairs()
+      sbEncoder.adapter.aqua.publishPairs()
       const blocks = sbEncoder.getTransactions()
-
-      console.log('Setting deposit strategy with blocks:', blocks)
 
       const executeData = proVault.setDepositStrategy(blocks)
       const tx = await walletClient.sendTransaction({
@@ -306,44 +352,75 @@ export function useCreateVaultDeployment(params: VaultDeploymentParams) {
         gas: 8000000n,
       })
 
-      console.log('Waiting for transaction...')
       await publicClient.waitForTransactionReceipt({ hash: tx })
-
-      console.log('✅ Deposit strategy configured!')
 
       return { vaultAddress, txHash: tx }
     },
     [userAddress, walletClient, publicClient]
   )
 
-  // Step 4: Save to API
+  // Step 5: Save to API
   const saveToAPI = useCallback(
     async (_: VaultDeploymentParams, prevResult: DeployVaultResult) => {
-      console.log('=== Step 4: Save to API ===')
+      if (!userAddress || !signMessageAsync) {
+        throw new Error('Wallet not connected or sign message not available')
+      }
 
       const { vaultAddress } = prevResult
 
-      // TODO: Implement API save similar to Factor Studio
-      // For now, just log
-      console.log('Saving vault to API:', {
-        vaultAddress,
+      // Step 1: Request signature from user (same format as Factor Studio)
+      const signatureMessage = `Save strategy: ${config.name}`
+      
+      const signature = await signMessageAsync({ message: signatureMessage })
+
+      // Step 2: Prepare payload (similar to Factor Studio format)
+      const payload = {
+        signature,
         name: config.name,
-        description: config.description,
-        image: config.image,
-        chainId,
-        owner: userAddress,
-        tokens: config.whitelistedTokens,
-        pairs: config.selectedPairs,
+        description: config.description || '',
+        type: 'pro-vault',
+        chain: chainId,
+        status: 'deployed',
+        owner: userAddress.toLowerCase(),
+        vault_address: vaultAddress.toLowerCase(),
+        strategy: {
+          canvas: [], // Empty canvas for now, can be extended later
+          metadata: {
+            logoCID: config.image || '',
+            depositAssetAddressesVisibility: config.whitelistedTokens,
+            withdrawAssetAddressesVisibility: config.whitelistedTokens,
+          },
+        },
+      }
+
+      // Step 3: Send to API (using same endpoint as Factor Studio)
+      const STATS_API_BASE = import.meta.env.VITE_STATS_API_BASE_URL || import.meta.env.VITE_STATS_API_BASE || 'https://api.factordao.com'
+      const response = await fetch(`${STATS_API_BASE}/strategies/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
       })
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }))
+        throw new Error(errorData.message || `API error: ${response.statusText}`)
+      }
 
-      console.log('✅ Vault saved to API!')
+      const savedStrategy = await response.json()
 
-      return { vaultAddress, saved: true }
+      if (savedStrategy.error) {
+        throw new Error(savedStrategy.message || 'Failed to save vault to API')
+      }
+
+      return {
+        vaultAddress,
+        hash: savedStrategy.strategy?.hash,
+        saved: true,
+      }
     },
-    [config, userAddress]
+    [config, chainId, userAddress, signMessageAsync]
   )
 
   const flowSteps: TransactionFlowStep<VaultDeploymentParams>[] = [
@@ -354,6 +431,10 @@ export function useCreateVaultDeployment(params: VaultDeploymentParams) {
     {
       title: 'Setup Pairs & Publish',
       execute: setPairsAndPublish,
+    },
+    {
+      title: 'Add Public Strategy',
+      execute: addPublicStrategy,
     },
     {
       title: 'Configure Deposit Strategy',

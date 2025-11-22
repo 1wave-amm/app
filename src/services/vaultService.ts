@@ -5,7 +5,7 @@
  */
 
 const STATS_API_BASE_URL = import.meta.env.VITE_STATS_API_BASE_URL || ""
-const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmgzitcts001c5np28moc9lyy/subgraphs/onewave/backend-0.0.5/gn"
+const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmgzitcts001c5np28moc9lyy/subgraphs/onewave/backend-0.0.6/gn"
 
 // ==================== Type Definitions ====================
 
@@ -259,7 +259,6 @@ async function fetchVaultsFromSubgraph(vaultAddresses: string[]): Promise<Map<st
     const data = await response.json()
 
     if (data.errors) {
-      console.error('[vaultService] Subgraph GraphQL errors fetching vaults:', data.errors)
       return new Map()
     }
 
@@ -272,15 +271,8 @@ async function fetchVaultsFromSubgraph(vaultAddresses: string[]): Promise<Map<st
       }
     })
 
-    console.log('[vaultService] Fetched vaults from subgraph:', {
-      requested: vaultAddresses.length,
-      received: vaultMap.size,
-      vaults: Array.from(vaultMap.keys()),
-    })
-
     return vaultMap
   } catch (error) {
-    console.error('[vaultService] Error fetching vaults from subgraph:', error)
     return new Map()
   }
 }
@@ -321,26 +313,19 @@ async function fetchAquaPairs(): Promise<AquaPair[]> {
     const data = await response.json()
 
     if (data.errors) {
-      console.error('[vaultService] Subgraph GraphQL errors:', data.errors)
       return []
     }
 
     const pairs = data.data?.aquaPairs || []
-    console.log('[vaultService] Fetched Aqua pairs from subgraph:', {
-      count: pairs.length,
-      uniqueVaults: new Set(pairs.map((p: AquaPair) => p.vault.toLowerCase())).size,
-    })
 
     return pairs
   } catch (error) {
-    console.error('[vaultService] Error fetching aqua pairs from subgraph:', error)
     return []
   }
 }
 
 async function fetchProVaults(): Promise<ProVaultResponse[]> {
   if (!STATS_API_BASE_URL) {
-    console.warn("VITE_STATS_API_BASE_URL not set")
     return []
   }
 
@@ -351,14 +336,12 @@ async function fetchProVaults(): Promise<ProVaultResponse[]> {
     }
     return await response.json()
   } catch (error) {
-    console.error("Error fetching pro vaults:", error)
     return []
   }
 }
 
 async function fetchAvailableTokens(): Promise<AvailableTokenResponse[]> {
   if (!STATS_API_BASE_URL) {
-    console.warn("VITE_STATS_API_BASE_URL not set")
     return []
   }
 
@@ -370,19 +353,16 @@ async function fetchAvailableTokens(): Promise<AvailableTokenResponse[]> {
     const data = await response.json()
     // Ensure we return an array
     if (!Array.isArray(data)) {
-      console.warn('[vaultService] available-tokens API did not return an array:', typeof data, data)
       return []
     }
     return data
   } catch (error) {
-    console.error("Error fetching available tokens:", error)
     return []
   }
 }
 
 async function fetchStrategies(): Promise<any[]> {
   if (!STATS_API_BASE_URL) {
-    console.warn("VITE_STATS_API_BASE_URL not set")
     return []
   }
 
@@ -394,7 +374,6 @@ async function fetchStrategies(): Promise<any[]> {
     const result = await response.json()
     return result?.data || []
   } catch (error) {
-    console.error("Error fetching strategies:", error)
     return []
   }
 }
@@ -464,7 +443,6 @@ export async function fetchAggregatedVaults(): Promise<AggregatedVault[]> {
     // Store original address from subgraph
     const originalAddress = pair.vault?.trim()
     if (!originalAddress) {
-      console.warn('[vaultService] Pair missing vault address:', pair)
       return
     }
     
@@ -483,20 +461,6 @@ export async function fetchAggregatedVaults(): Promise<AggregatedVault[]> {
   // Fetch vault data from subgraph for all vaults with pairs
   const subgraphVaults = await fetchVaultsFromSubgraph(Array.from(vaultAddressesFromSubgraph))
 
-  console.log('[vaultService] Fetched data:', {
-    aquaPairs: aquaPairs?.length || 0,
-    proVaults: proVaults?.length || 0,
-    availableTokens: availableTokens?.length || 0,
-    strategies: strategies?.length || 0,
-    subgraphVaults: subgraphVaults.size,
-  })
-
-  console.log('[vaultService] Vault addresses from subgraph:', {
-    count: vaultAddressesFromSubgraph.size,
-    addresses: Array.from(vaultAddressesFromSubgraph),
-    pairsCount: aquaPairs.length,
-  })
-
   // Ensure availableTokens is an array
   const safeAvailableTokens = Array.isArray(availableTokens) ? availableTokens : []
 
@@ -510,27 +474,12 @@ export async function fetchAggregatedVaults(): Promise<AggregatedVault[]> {
   const filteredProVaults = proVaults.filter((vault) => {
     const address = normalizeVaultAddress(vault)
     if (!address) {
-      console.warn('[vaultService] Vault missing address:', vault)
       return false
     }
     const addressLower = address.toLowerCase().trim()
     const isMatch = vaultAddressesFromSubgraph.has(addressLower)
     
-    if (!isMatch) {
-      console.debug('[vaultService] Vault not in subgraph:', {
-        vaultAddress: addressLower,
-        subgraphAddresses: Array.from(vaultAddressesFromSubgraph),
-      })
-    }
-    
     return isMatch
-  })
-  
-  console.log('[vaultService] Pro vaults filtered by subgraph:', {
-    total: proVaults.length,
-    filtered: filteredProVaults.length,
-    matchedAddresses: filteredProVaults.map(v => normalizeVaultAddress(v)),
-    subgraphAddresses: Array.from(vaultAddressesFromSubgraph),
   })
 
   filteredProVaults.forEach((vault) => {
@@ -779,12 +728,6 @@ export async function fetchAggregatedVaults(): Promise<AggregatedVault[]> {
       const originalAddress = vaultAddressOriginalMap.get(vaultAddressLower) || vaultAddressLower
       const subgraphVault = subgraphVaults.get(vaultAddressLower)
       
-      console.log('[vaultService] Creating vault entry from subgraph:', {
-        lowercase: vaultAddressLower,
-        original: originalAddress,
-        hasSubgraphData: !!subgraphVault,
-      })
-      
       const aquaPairs = pairsByVault.get(vaultAddressLower) || []
       
       // Extract tokens from subgraph vault data (preferred) or pairs (fallback)
@@ -913,12 +856,6 @@ export async function fetchAggregatedVaults(): Promise<AggregatedVault[]> {
   })
 
   const result = Array.from(vaultMap.values())
-  console.log('[vaultService] Final aggregated vaults:', {
-    count: result.length,
-    addresses: result.map(v => v.address),
-    names: result.map(v => v.name),
-    vaultsWithPairs: result.filter(v => v.aquaPairs && v.aquaPairs.length > 0).length,
-  })
 
   return result
 }

@@ -2,11 +2,11 @@ import { Address } from 'viem'
 
 // XYCSwap DEX address on Base
 export const XYC_SWAP_ADDRESS = (import.meta.env.VITE_XYC_SWAP_ADDRESS ||
-  '0x984E806a109E8Abd70306E6111180ab4e235FF4e') as Address
+  '0xa9e35ef3cc6493c61cc782c373a5f076aaae2f98') as Address
 
 // Subgraph URL for Aqua pairs
 export const SUBGRAPH_URL = 
-  'https://api.goldsky.com/api/public/project_cmgzitcts001c5np28moc9lyy/subgraphs/onewave/backend-0.0.5/gn'
+  'https://api.goldsky.com/api/public/project_cmgzitcts001c5np28moc9lyy/subgraphs/onewave/backend-0.0.6/gn'
 
 // Default slippage tolerance in basis points (100 = 1%)
 export const DEFAULT_SLIPPAGE_BPS = 100n // 1%

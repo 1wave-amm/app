@@ -110,7 +110,6 @@ export function Vaults() {
       
       return map
     } catch (error) {
-      console.error('[Vaults] Error loading tokenlist:', error)
       // Fallback to base tokens only
       const map = new Map<string, { symbol: string; name: string; logoUrl: string; address: string }>()
       BASE_WHITELISTED_TOKENS.forEach((token) => {

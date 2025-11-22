@@ -1,3 +1,5 @@
+import { Address } from 'viem'
+
 /**
  * Whitelisted tokens for BASE chain with Chainlink price feeds
  * These tokens are available for vault creation
@@ -11,6 +13,7 @@ export interface BaseToken {
   decimals: number
   logoURI?: string
   chainlinkFeed?: string // Chainlink price feed address on BASE
+  accountingAdapter?: string // Specific accounting adapter address (if different from default)
 }
 
 // BASE chain token addresses (chainId: 8453)
@@ -41,16 +44,18 @@ export const BASE_WHITELISTED_TOKENS: BaseToken[] = [
   {
     symbol: "wBTC",
     name: "Wrapped Bitcoin Base",
-    address: "0xF8c700552B67D64362Af3F2D48B098E5AC9b9870",
+    address: "0xCCADC697c55bbB68dc5bCdf8d3CBe83CdD4E071E",
     decimals: 8,
     chainlinkFeed: "0x64c911996D3c6aC71f9b455B1E8E7266BcbD848F", // BTC/USD on BASE
+    accountingAdapter: "0xCCADC697c55bbB68dc5bCdf8d3CBe83CdD4E071E", // Specific accounting adapter for wBTC
   },
   {
     symbol: "cbBTC",
     name: "Coinbase Wrapped BTC",
-    address: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+    address: "0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D",
     decimals: 8,
     chainlinkFeed: "0x64c911996D3c6aC71f9b455B1E8E7266BcbD848F", // BTC/USD on BASE
+    accountingAdapter: "0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D", // Specific accounting adapter for cbBTC
   },
   {
     symbol: "lBTC",
@@ -62,30 +67,34 @@ export const BASE_WHITELISTED_TOKENS: BaseToken[] = [
   {
     symbol: "USDe",
     name: "USDe",
-    address: "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
+    address: "0x790181e93e9F4Eedb5b864860C12e4d2CffFe73B",
     decimals: 18,
-    chainlinkFeed: "0x7e860098F58bBFC8648a4311b374B1D669a2bc6B", // Use USDC/USD as proxy
+    chainlinkFeed: "0x790181e93e9F4Eedb5b864860C12e4d2CffFe73B", // USDe/USD feed (custom accounting adapter)
+    accountingAdapter: "0x790181e93e9F4Eedb5b864860C12e4d2CffFe73B", // Specific accounting adapter for USDe
   },
   {
     symbol: "cbETH",
     name: "Coinbase Wrapped Staked ETH",
-    address: "0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22",
+    address: "0xd7818272B9e248357d13057AAb0B417aF31E817d",
     decimals: 18,
     chainlinkFeed: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70", // ETH/USD with conversion
+    accountingAdapter: "0xd7818272B9e248357d13057AAb0B417aF31E817d", // Specific accounting adapter for cbETH
   },
   {
     symbol: "GHO",
     name: "Gho Token",
-    address: "0x6Bb7a212910682DCFdbd5BCBb3e28FB4E8da10Ee",
+    address: "0x42868EFcee13C0E71af89c04fF7d96f5bec479b0",
     decimals: 18,
-    chainlinkFeed: "0x0000000000000000000000000000000000000000", // No direct feed
+    chainlinkFeed: "0x42868EFcee13C0E71af89c04fF7d96f5bec479b0", // GHO/USD feed (custom accounting adapter)
+    accountingAdapter: "0x42868EFcee13C0E71af89c04fF7d96f5bec479b0", // Specific accounting adapter for GHO
   },
   {
     symbol: "LINK",
     name: "Chainlink (Universal)",
-    address: "0x88fb150bdc53a65fe94dea0c9ba0a6daf8c6e196",
+    address: "0x17CAb8FE31E32f08326e5E27412894e49B0f9D65",
     decimals: 18,
     chainlinkFeed: "0xe7cD535c89f66781619db3d0aD48D1b9Cc3C81b5", // LINK/USD on BASE
+    accountingAdapter: "0x17CAb8FE31E32f08326e5E27412894e49B0f9D65", // Specific accounting adapter for LINK
   },
   {
     symbol: "renzo",
@@ -145,5 +154,23 @@ export function getBaseTokenByAddress(address: string): BaseToken | undefined {
  */
 export function getBaseWhitelistedTokens(): BaseToken[] {
   return BASE_WHITELISTED_TOKENS
+}
+
+/**
+ * Get accounting adapter address for a token
+ * Returns the specific accounting adapter if defined, otherwise returns the default Chainlink adapter
+ */
+export function getAccountingAdapterForToken(
+  tokenAddress: string | Address | `0x${string}` | { toString(): string },
+  defaultAdapter: Address
+): Address {
+  const addressStr = typeof tokenAddress === 'string' 
+    ? tokenAddress 
+    : tokenAddress.toString()
+  const token = getBaseTokenByAddress(addressStr)
+  if (token?.accountingAdapter && token.accountingAdapter !== '0x0000000000000000000000000000000000000000') {
+    return token.accountingAdapter as Address
+  }
+  return defaultAdapter
 }
 

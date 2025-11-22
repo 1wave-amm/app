@@ -32,6 +32,7 @@ export function useTransactionFlow<TXFlowExecuteParams>({
   executeParams,
 }: TransactionFlowExecuteParams<TXFlowExecuteParams>) {
   const [currentStepIndex, setCurrentStepIndex] = useState(-1)
+  const [isExecuting, setIsExecuting] = useState(false)
 
   const initialStatus = useMemo(
     () => ({
@@ -58,6 +59,10 @@ export function useTransactionFlow<TXFlowExecuteParams>({
       const step = steps[stepIndex]
       if (!step) return false
 
+      // Prevent duplicate execution
+      if (isExecuting) return false
+
+      setIsExecuting(true)
       try {
         setStatus((prev) => ({
           ...prev,
@@ -96,6 +101,8 @@ export function useTransactionFlow<TXFlowExecuteParams>({
           ),
         }))
 
+        setIsExecuting(false)
+
         // Move to next step or complete
         if (stepIndex < steps.length - 1) {
           setCurrentStepIndex(stepIndex + 1)
@@ -111,7 +118,6 @@ export function useTransactionFlow<TXFlowExecuteParams>({
         return true
       } catch (error) {
         const e = error as Error
-        console.error('Transaction flow error:', e)
         
         setStatus((prev) => ({
           ...prev,
@@ -135,10 +141,11 @@ export function useTransactionFlow<TXFlowExecuteParams>({
           ),
         }))
 
+        setIsExecuting(false)
         return false
       }
     },
-    [steps, executeParams, status.steps]
+    [steps, executeParams, status.steps, isExecuting]
   )
 
   const start = useCallback(() => {
@@ -153,9 +160,30 @@ export function useTransactionFlow<TXFlowExecuteParams>({
     
     const failedStepIndex = status.steps.findIndex(step => step.isError)
     if (failedStepIndex !== -1) {
+      // Reset error state for the failed step and overall status
+      setStatus((prev) => ({
+        ...prev,
+        isError: false,
+        isPending: false,
+        message: '',
+        currentStepIndex: failedStepIndex,
+        steps: prev.steps.map((s, i) =>
+          i === failedStepIndex
+            ? {
+                ...s,
+                isError: false,
+                isPending: false,
+                isSuccess: false,
+              }
+            : s
+        ),
+      }))
+      // Set current step index to retry the failed step
       setCurrentStepIndex(failedStepIndex)
+      // Execute the failed step directly
+      execute(failedStepIndex)
     }
-  }, [status.isPending, status.steps])
+  }, [status.isPending, status.steps, execute])
 
   const reset = useCallback(() => {
     setCurrentStepIndex(-1)
@@ -164,10 +192,11 @@ export function useTransactionFlow<TXFlowExecuteParams>({
 
   // Execute current step when index changes
   useEffect(() => {
-    if (currentStepIndex >= 0 && currentStepIndex < steps.length && !status.isError) {
+    if (currentStepIndex >= 0 && currentStepIndex < steps.length && !isExecuting) {
       execute(currentStepIndex)
     }
-  }, [currentStepIndex, steps.length, status.isError])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStepIndex, steps.length])
 
   // Update the steps when they change
   useEffect(() => {

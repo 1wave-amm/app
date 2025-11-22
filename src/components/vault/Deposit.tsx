@@ -154,15 +154,6 @@ export function Deposit({ vault, availableTokens, onBalanceUpdate }: DepositProp
           const formattedBalance = formatUnits(balance as bigint, token.decimals || 18)
           setTokenBalance(formattedBalance)
           setBalanceError(false)
-          
-          // Debug log to verify balance is being read correctly
-          console.log('[Deposit] Balance fetched:', {
-            tokenAddress: token.address,
-            tokenSymbol: token.symbol,
-            tokenDecimals: token.decimals,
-            balanceRaw: balance.toString(),
-            balanceFormatted: formattedBalance,
-          })
         }
       } catch (error: any) {
         if (!cancelled) {

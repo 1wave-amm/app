@@ -111,7 +111,6 @@ export function useProVaultWithdraw({
           isWithdraw, // Only withdraw the selected token
         })
       } catch (error) {
-        console.error('[useProVaultWithdraw] Error preparing raw withdraw:', error)
         setIsWaitingForWithdraw(false)
         throw error
       }

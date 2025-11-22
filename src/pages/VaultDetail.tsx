@@ -55,7 +55,6 @@ interface VaultDetail extends AggregatedVault {
 
 async function fetchVaultDetail(address: string): Promise<VaultDetail | null> {
   if (!STATS_API_BASE_URL) {
-    console.warn("VITE_STATS_API_BASE_URL not set")
     return null
   }
 
@@ -104,7 +103,6 @@ async function fetchVaultDetail(address: string): Promise<VaultDetail | null> {
       balances: data.balances,
     }
   } catch (error) {
-    console.error("Error fetching vault detail:", error)
     return null
   }
 }
@@ -181,7 +179,6 @@ export function VaultDetail() {
         tokens: enrichedTokens,
       }
     } catch (error) {
-      console.error('[VaultDetail] Error enriching tokens:', error)
       return vault
     }
   }, [vault, chainId])
@@ -258,7 +255,6 @@ export function VaultDetail() {
             className="rounded-full flex-shrink-0"
             onClick={() => {
               // TODO: Implement rebalance pairs price functionality
-              console.log("Rebalance Pairs Price clicked")
             }}
           >
             Rebalance Pairs Price

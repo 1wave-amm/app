@@ -35,32 +35,29 @@ export function DeploymentProgressModal({
   const totalSteps = steps.length
   const progressPercentage = (completedSteps / totalSteps) * 100
 
-  // Debug log
-  useEffect(() => {
-    console.log('🎭 DeploymentProgressModal render:', { isOpen, isPending, isSuccess, isError, currentStepIndex })
-  }, [isOpen, isPending, isSuccess, isError, currentStepIndex])
-
   // Auto-start when modal opens
   useEffect(() => {
     if (isOpen && !isPending && !isSuccess && !isError && currentStepIndex === -1) {
-      console.log('▶️ Auto-starting deployment flow in 500ms...')
       setTimeout(() => {
-        console.log('🚀 Starting deployment flow NOW')
         start()
       }, 500)
     }
   }, [isOpen, isPending, isSuccess, isError, currentStepIndex, start])
 
-  // Call onComplete when done
+  // Extract vault address from deployment result
+  const vaultAddress = steps[0]?.returnValue as any
+  const vaultAddressStr = vaultAddress?.vaultAddress || vaultAddress?.address || ''
+
+  // Call onComplete when done (with delay to show success message)
   useEffect(() => {
-    if (isSuccess && onComplete) {
-      // Extract vault address from first step result
-      const deployResult = steps[0]?.returnValue as any
-      if (deployResult?.vaultAddress) {
-        onComplete(deployResult.vaultAddress)
-      }
+    if (isSuccess && onComplete && vaultAddressStr) {
+      // Wait a bit to show success message before redirecting
+      const timer = setTimeout(() => {
+        onComplete(vaultAddressStr)
+      }, 3000) // 3 seconds to show success message
+      return () => clearTimeout(timer)
     }
-  }, [isSuccess, steps, onComplete])
+  }, [isSuccess, vaultAddressStr, onComplete])
 
   const handleClose = () => {
     if (!isPending) {
@@ -174,6 +171,27 @@ export function DeploymentProgressModal({
             })}
           </div>
 
+          {/* Success Message with Vault Details */}
+          {isSuccess && vaultAddressStr && (
+            <div className="flex items-start gap-2 p-4 rounded-lg bg-success/10 border border-success/20">
+              <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-success mb-2">Deployment Successful!</p>
+                <div className="space-y-2 text-xs text-success/80">
+                  <p><strong>Vault Address:</strong></p>
+                  <p className="font-mono break-all bg-black/20 p-2 rounded">{vaultAddressStr}</p>
+                  <div className="mt-2 p-2 bg-blue-500/10 border border-blue-500/20 rounded">
+                    <p className="text-blue-300 font-medium">ℹ️ Note:</p>
+                    <p className="text-blue-200/80 mt-1">
+                      Your vault is being indexed by the subgraph. It will appear in the vaults list shortly. 
+                      You'll be redirected to the Swap page.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Error Message */}
           {isError && message && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-error/10 border border-error/20">
@@ -196,12 +214,26 @@ export function DeploymentProgressModal({
                 Retry
               </Button>
             )}
-            {(isSuccess || isError) && (
+            {isSuccess && (
               <Button
-                variant={isSuccess ? 'glass-apple' : 'outline'}
+                variant="glass-apple"
+                onClick={() => {
+                  if (vaultAddressStr && onComplete) {
+                    onComplete(vaultAddressStr)
+                  } else {
+                    handleClose()
+                  }
+                }}
+              >
+                Go to Swap
+              </Button>
+            )}
+            {isError && (
+              <Button
+                variant="outline"
                 onClick={handleClose}
               >
-                {isSuccess ? 'View Vault' : 'Close'}
+                Close
               </Button>
             )}
             {isPending && (

@@ -29,10 +29,10 @@ const vaultSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
   image: z.string().url().optional().or(z.literal("")),
-  depositFee: z.number().min(0).max(5),
-  withdrawFee: z.number().min(0).max(5),
-  managementFee: z.number().min(0).max(2),
-  performanceFee: z.number().min(0).max(20),
+  depositFee: z.number().min(0).max(100),
+  withdrawFee: z.number().min(0).max(100),
+  managementFee: z.number().min(0).max(100),
+  performanceFee: z.number().min(0).max(100),
   whitelistedTokens: z.array(z.string()).min(2, "Select at least 2 tokens"),
   selectedPairs: z.array(z.object({
     pairId: z.string(),
@@ -62,10 +62,6 @@ export function CreateVaultWizard() {
   const navigate = useNavigate()
   const { toast } = useToast()
 
-  // Debug: log modal state changes
-  useEffect(() => {
-    console.log('🎭 Modal state changed:', isDeploymentModalOpen)
-  }, [isDeploymentModalOpen])
 
   // Alchemy API key from environment
   const alchemyApiKey = import.meta.env.VITE_ALCHEMY_API_KEY || ''
@@ -94,31 +90,29 @@ export function CreateVaultWizard() {
     },
   })
 
-  // Debug: log form errors
-  useEffect(() => {
-    if (Object.keys(errors).length > 0) {
-      console.log('❌ Form validation errors:', errors)
-    }
-  }, [errors])
-
+  // Watch only specific fields to avoid unnecessary re-renders
   const watchedName = watch("name")
+  const watchedDescription = watch("description")
+  const watchedImage = watch("image")
+  const watchedDepositFee = watch("depositFee")
+  const watchedWithdrawFee = watch("withdrawFee")
+  const watchedManagementFee = watch("managementFee")
+  const watchedPerformanceFee = watch("performanceFee")
+  const watchedWhitelistedTokens = watch("whitelistedTokens")
+  const watchedSelectedPairs = watch("selectedPairs")
+
   const displayName = watchedName
     ? `${VAULT_NAME_PREFIX}${watchedName}`
     : VAULT_NAME_PREFIX
 
-  const onSubmit = async (data: VaultFormData) => {
-    console.log('✅ Form validation passed!')
-    console.log('📝 Form submitted with data:', data)
-    
+  const onSubmit = async (_data: VaultFormData) => {
     // Check if wallet is connected
     if (!isConnected && openConnectModal) {
-      console.log('⚠️ Wallet not connected, opening connect modal')
       openConnectModal()
       return
     }
 
     if (!alchemyApiKey) {
-      console.log('⚠️ Alchemy API key missing')
       toast({
         title: "Configuration Error",
         description: "Alchemy API key not configured. Please set VITE_ALCHEMY_API_KEY in your environment.",
@@ -127,14 +121,11 @@ export function CreateVaultWizard() {
       return
     }
 
-    console.log('✅ Opening deployment modal')
     // Open deployment modal
     setIsDeploymentModalOpen(true)
   }
 
-  const onSubmitError = (errors: any) => {
-    console.log('❌ Form validation FAILED!')
-    console.error('Validation errors:', errors)
+  const onSubmitError = () => {
     toast({
       title: "Form Validation Error",
       description: "Please check all required fields and fix any errors.",
@@ -143,44 +134,58 @@ export function CreateVaultWizard() {
   }
 
   const handleDeploymentComplete = (vaultAddress: string) => {
-    console.log('🎉 Deployment complete! Vault address:', vaultAddress)
+    if (!vaultAddress) {
+      toast({
+        title: "Deployment Error",
+        description: "Vault address not found. Please check the transaction.",
+        variant: "destructive",
+      })
+      return
+    }
+
     toast({
       title: "Vault Deployed Successfully!",
-      description: `Your vault has been deployed at ${vaultAddress.slice(0, 10)}...`,
+      description: `Your vault ${vaultAddress.slice(0, 6)}...${vaultAddress.slice(-4)} will be available shortly. The subgraph is indexing your vault data.`,
+      duration: 8000,
     })
     
-    // Navigate to vault detail page after a short delay
-    setTimeout(() => {
+    // Close modal and navigate to swap page
+    // Don't navigate to vault page yet as subgraph needs time to index
       setIsDeploymentModalOpen(false)
-      navigate(`/vault/${vaultAddress}`)
-    }, 2000)
+    navigate('/swap')
   }
 
   const handleDeploymentModalClose = () => {
-    console.log('🔒 Deployment modal closed')
     setIsDeploymentModalOpen(false)
   }
-
-  // Get form values for deployment
-  const formValues = watch()
   
   const deploymentConfig = useMemo(() => {
     const config = {
-      name: `${VAULT_NAME_PREFIX}${formValues.name || ''}`,
-      description: formValues.description || '',
-      image: formValues.image || '',
-      depositFee: formValues.depositFee || 0,
-      withdrawFee: formValues.withdrawFee || 0,
-      managementFee: formValues.managementFee || 0,
-      performanceFee: formValues.performanceFee || 0,
-      whitelistedTokens: formValues.whitelistedTokens || [],
-      selectedPairs: formValues.selectedPairs || [],
+      name: `${VAULT_NAME_PREFIX}${watchedName || ''}`,
+      description: watchedDescription || '',
+      image: watchedImage || '',
+      depositFee: watchedDepositFee || 0,
+      withdrawFee: watchedWithdrawFee || 0,
+      managementFee: watchedManagementFee || 0,
+      performanceFee: watchedPerformanceFee || 0,
+      whitelistedTokens: watchedWhitelistedTokens || [],
+      selectedPairs: watchedSelectedPairs || [],
     }
-    console.log('🔧 Deployment config updated:', config)
     return config
-  }, [formValues])
+  }, [
+    watchedName,
+    watchedDescription,
+    watchedImage,
+    watchedDepositFee,
+    watchedWithdrawFee,
+    watchedManagementFee,
+    watchedPerformanceFee,
+    watchedWhitelistedTokens,
+    watchedSelectedPairs,
+    isDeploymentModalOpen,
+  ])
 
-  // Only create transaction flow if modal is open
+  // Create transaction flow - it will only execute when modal opens and start() is called
   const transactionFlow = useCreateVaultDeployment({
     config: deploymentConfig,
     feeReceiverAddress,
@@ -336,27 +341,6 @@ export function CreateVaultWizard() {
 
   return (
     <>
-      {/* Debug button - Remove in production */}
-      {import.meta.env.DEV && (
-        <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg mb-4">
-          <p className="text-xs text-yellow-600 mb-2">🐛 Debug Mode</p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              console.log('🧪 Test button clicked')
-              setIsDeploymentModalOpen(true)
-            }}
-          >
-            Test Modal (Debug)
-          </Button>
-          <span className="text-xs ml-2 text-muted-foreground">
-            Modal state: {isDeploymentModalOpen ? 'OPEN' : 'CLOSED'}
-          </span>
-        </div>
-      )}
-      
       <DeploymentProgressModal
         isOpen={isDeploymentModalOpen}
         onClose={handleDeploymentModalClose}
@@ -430,7 +414,7 @@ export function CreateVaultWizard() {
               type="number"
               step="0.1"
               min="0"
-              max="5"
+              max="100"
               {...register("depositFee", { valueAsNumber: true })}
             />
             {errors.depositFee && (
@@ -446,7 +430,7 @@ export function CreateVaultWizard() {
               type="number"
               step="0.1"
               min="0"
-              max="5"
+              max="100"
               {...register("withdrawFee", { valueAsNumber: true })}
             />
             {errors.withdrawFee && (
@@ -462,7 +446,7 @@ export function CreateVaultWizard() {
               type="number"
               step="0.1"
               min="0"
-              max="2"
+              max="100"
               {...register("managementFee", { valueAsNumber: true })}
             />
             {errors.managementFee && (
@@ -478,7 +462,7 @@ export function CreateVaultWizard() {
               type="number"
               step="0.1"
               min="0"
-              max="20"
+              max="100"
               {...register("performanceFee", { valueAsNumber: true })}
             />
             {errors.performanceFee && (
@@ -740,11 +724,6 @@ export function CreateVaultWizard() {
           <Button 
             type="submit" 
             variant="glass-apple"
-            onClick={(e) => {
-              console.log('🖱️ Deploy Vault button clicked')
-              console.log('📋 Current form values:', watch())
-              console.log('❌ Current form errors:', errors)
-            }}
           >
             Deploy Vault
           </Button>

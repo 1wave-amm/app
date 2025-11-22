@@ -3,7 +3,7 @@ import { Address } from 'viem'
 import { useReadContract } from 'wagmi'
 import { parseUnits } from 'viem'
 import { XYC_SWAP_ADDRESS } from '@/lib/constants/swap'
-import { getPairFromSubgraph, determineZeroForOne, type XYCSwapStrategy } from '@/lib/utils/swap'
+import { getAllPairsWithTvl, determineZeroForOne, type XYCSwapStrategy, type AquaPairWithTvl } from '@/lib/utils/swap'
 import { aquaAdapterABI } from '@factordao/contracts'
 import xycswapABI from '@/lib/abis/xycswap.json'
 
@@ -12,6 +12,7 @@ interface UseSwapQuoteParams {
   tokenOut: Address | null
   amountIn: string
   tokenInDecimals?: number
+  selectedPairHash?: string | null // Optional: specific pair to use
 }
 
 export function useSwapQuote({
@@ -19,6 +20,7 @@ export function useSwapQuote({
   tokenOut,
   amountIn,
   tokenInDecimals = 18,
+  selectedPairHash,
 }: UseSwapQuoteParams) {
   const [pairData, setPairData] = useState<{
     vault: Address
@@ -27,14 +29,16 @@ export function useSwapQuote({
     token1: Address
     feeBps: string
   } | null>(null)
+  const [availablePairs, setAvailablePairs] = useState<AquaPairWithTvl[]>([])
   const [strategyNonce, setStrategyNonce] = useState<bigint | null>(null)
   const [isLoadingPair, setIsLoadingPair] = useState(false)
   const [pairError, setPairError] = useState<string | null>(null)
 
-  // Fetch pair data from subgraph
+  // Fetch all pairs with TVL from subgraph
   useEffect(() => {
     if (!tokenIn || !tokenOut) {
       setPairData(null)
+      setAvailablePairs([])
       setPairError(null)
       return
     }
@@ -42,24 +46,48 @@ export function useSwapQuote({
     setIsLoadingPair(true)
     setPairError(null)
 
-    getPairFromSubgraph(tokenIn, tokenOut)
-      .then((pair) => {
-        if (!pair) {
-          setPairError('Pair not found in subgraph')
+    getAllPairsWithTvl(tokenIn, tokenOut)
+      .then((pairs) => {
+        if (pairs.length === 0) {
+          setPairError('No pairs found in subgraph')
           setPairData(null)
+          setAvailablePairs([])
           return
         }
-        setPairData(pair)
+
+        setAvailablePairs(pairs)
+
+        // Select pair: use selectedPairHash if provided, otherwise use best (first, highest TVL)
+        let selectedPair: AquaPairWithTvl | null = null
+        if (selectedPairHash) {
+          selectedPair = pairs.find(p => p.pairHash.toLowerCase() === selectedPairHash.toLowerCase()) || null
+        }
+        if (!selectedPair) {
+          selectedPair = pairs[0] // Best pair (highest TVL)
+        }
+
+        if (selectedPair) {
+          setPairData({
+            vault: selectedPair.vault,
+            pairHash: selectedPair.pairHash,
+            token0: selectedPair.token0,
+            token1: selectedPair.token1,
+            feeBps: selectedPair.feeBps,
+          })
+        } else {
+          setPairError('No valid pair selected')
+          setPairData(null)
+        }
       })
       .catch((error) => {
-        console.error('[useSwapQuote] Error fetching pair:', error)
-        setPairError(error.message || 'Failed to fetch pair')
+        setPairError(error.message || 'Failed to fetch pairs')
         setPairData(null)
+        setAvailablePairs([])
       })
       .finally(() => {
         setIsLoadingPair(false)
       })
-  }, [tokenIn, tokenOut])
+  }, [tokenIn, tokenOut, selectedPairHash])
 
   // Read strategy nonce from vault
   const { data: nonceData } = useReadContract({
@@ -112,13 +140,24 @@ export function useSwapQuote({
     },
   })
 
+  // Check for insufficient liquidity
+  const liquidityError = (() => {
+    // If we have an amount but no quote (or quote is 0), it means insufficient liquidity
+    if (amountInBN > 0n && xycStrategy && !isLoadingQuote) {
+      if (!quote || quote === 0n) {
+        return 'Insufficient liquidity for this swap. The vault does not have enough available liquidity (required: half of TVL).'
+      }
+    }
+    return null
+  })()
+
   return {
     quote: quote as bigint | undefined,
     isLoading: isLoadingPair || isLoadingQuote,
-    error: pairError || (quoteError?.message || null),
+    error: pairError || liquidityError || (quoteError?.message || null),
     pairData,
+    availablePairs, // All available pairs with TVL
     xycStrategy,
     zeroForOne,
   }
 }
-
