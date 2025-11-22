@@ -4,11 +4,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useAccount, useSwitchChain } from 'wagmi'
+import { useAccount } from 'wagmi'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { Loader2, ArrowRightLeft } from 'lucide-react'
 import { Address, createPublicClient, erc20Abi, formatUnits, parseUnits, http, publicActions } from 'viem'
-import { base, arbitrum } from 'viem/chains'
+import { base } from 'viem/chains'
 import { StudioProVault } from '@factordao/sdk-studio'
 import { StudioProVaultPreviewDespositResult } from '@factordao/sdk-studio/types/studio-pro/modules/deposit-module'
 import { useProVaultDeposit } from '@/hooks/useProVaultDeposit'
@@ -16,7 +16,7 @@ import { ActionPreview } from './ActionPreview'
 import { PercentageSelector } from './PercentageSelector'
 import { WalletBalance } from './WalletBalance'
 import { environment } from '@/lib/constants/dev'
-import { getRpcUrlForChain } from '@/lib/constants/rpc'
+import { getBaseRpcUrl } from '@/lib/constants/rpc'
 
 interface Token {
   address: string
@@ -62,8 +62,7 @@ const formatUsdCompact = (value: number): string => {
 }
 
 export function Deposit({ vault, availableTokens }: DepositProps) {
-  const { address, chainId } = useAccount()
-  const { switchChain } = useSwitchChain()
+  const { address } = useAccount()
   const { openConnectModal } = useConnectModal()
   const [depositAmount, setDepositAmount] = useState('')
   const [token, setToken] = useState<Token | undefined>(availableTokens[0])
@@ -72,17 +71,6 @@ export function Deposit({ vault, availableTokens }: DepositProps) {
   const [balanceRefreshTrigger, setBalanceRefreshTrigger] = useState(0)
   const [balanceError, setBalanceError] = useState(false)
   const [depositEstimate, setDepositEstimate] = useState<StudioProVaultPreviewDespositResult | null>(null)
-
-  const isWrongChain =
-    vault.chainId !== undefined &&
-    chainId !== undefined &&
-    Number(vault.chainId) !== Number(chainId)
-
-  const targetChain = useMemo(() => {
-    if (vault.chainId === base.id) return base
-    if (vault.chainId === arbitrum.id) return arbitrum
-    return base
-  }, [vault.chainId])
 
   const {
     handleDepositWithApproval,
@@ -120,7 +108,7 @@ export function Deposit({ vault, availableTokens }: DepositProps) {
 
   // Fetch balance
   useEffect(() => {
-    if (!token?.address || !address || !vault.chainId || !targetChain) {
+    if (!token?.address || !address) {
       return
     }
 
@@ -133,10 +121,10 @@ export function Deposit({ vault, availableTokens }: DepositProps) {
         setTokenBalance('0')
         setBalanceError(false)
         setIsLoadingBalance(true)
-        const rpcUrl = getRpcUrlForChain(Number(vault.chainId))
+        const rpcUrl = getBaseRpcUrl()
 
         const client = createPublicClient({
-          chain: targetChain,
+          chain: base,
           transport: http(rpcUrl, {
             timeout: 30_000,
           }),
@@ -175,7 +163,7 @@ export function Deposit({ vault, availableTokens }: DepositProps) {
     return () => {
       cancelled = true
     }
-  }, [token?.address, address, vault.chainId, targetChain, token?.decimals, balanceRefreshTrigger])
+  }, [token?.address, address, token?.decimals, balanceRefreshTrigger])
 
   // Debounced deposit estimate
   useEffect(() => {
@@ -187,10 +175,10 @@ export function Deposit({ vault, availableTokens }: DepositProps) {
     const timeoutId = setTimeout(async () => {
       try {
         const proVault = new StudioProVault({
-          chainId: vault.chainId,
+          chainId: 8453, // BASE
           vaultAddress: vault.address as Address,
           environment: environment,
-          jsonRpcUrl: getRpcUrlForChain(vault.chainId),
+          jsonRpcUrl: getBaseRpcUrl(),
         })
         const estimation = await proVault.previewDeposit({
           assetAddress: token.address as Address,
@@ -205,7 +193,7 @@ export function Deposit({ vault, availableTokens }: DepositProps) {
     return () => {
       clearTimeout(timeoutId)
     }
-  }, [depositAmount, token?.address, token?.decimals, vault.chainId, vault.address])
+  }, [depositAmount, token?.address, token?.decimals, vault.address])
 
   const formattedBalance = parseFloat(tokenBalance || '0')
 

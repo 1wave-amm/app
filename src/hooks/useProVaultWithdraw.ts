@@ -3,16 +3,13 @@ import { studioProV1ABI } from '@factordao/contracts'
 import { valueToBigInt, valueToBigNumber } from '@factordao/sdk'
 import { StudioProVault } from '@factordao/sdk-studio'
 import BigNumber from 'bignumber.js'
-import { Address, arbitrum, base, createPublicClient, http } from 'viem'
-import { useSendTransaction, useChainId } from 'wagmi'
+import { Address, base, createPublicClient, http } from 'viem'
+import { useSendTransaction } from 'wagmi'
 import { environment } from '@/lib/constants/dev'
-import { getRpcUrlForChain } from '@/lib/constants/rpc'
+import { BASE_CHAIN_ID, getBaseRpcUrl } from '@/lib/constants/rpc'
 
-// Helper contract addresses by chain
-const HELPER_CONTRACT_ADDRESSES: { [chainId: number]: Address } = {
-  [arbitrum.id]: '0x6B52b949d26067C131c6BEfD44A4170e36bdf54C',
-  [base.id]: '0x0bb7616b57e27b65f96a466668b12934e4f514ba',
-}
+// Helper contract address for BASE
+const HELPER_CONTRACT_ADDRESS: Address = '0x0bb7616b57e27b65f96a466668b12934e4f514ba'
 
 // Simplified helper ABI for getIsDirectWithdrawals
 const helperABI = [
@@ -39,7 +36,6 @@ interface UseProVaultWithdrawParams {
   receiverAddress: Address
   onSuccess?: () => void
   slippageTolerance: string
-  chainId?: number
   withdrawAmountRaw?: string
 }
 
@@ -51,26 +47,23 @@ export function useProVaultWithdraw({
   receiverAddress,
   onSuccess,
   slippageTolerance,
-  chainId,
   withdrawAmountRaw,
 }: UseProVaultWithdrawParams) {
   const [isWaitingForWithdraw, setIsWaitingForWithdraw] = useState(false)
   const { sendTransactionAsync } = useSendTransaction()
-  const currentChainId = useChainId()
 
   const handleWithdraw = async () => {
     try {
-      const effectiveChainId = chainId || currentChainId || base.id
       setIsWaitingForWithdraw(true)
       const proVault = new StudioProVault({
-        chainId: effectiveChainId,
+        chainId: BASE_CHAIN_ID,
         vaultAddress,
         environment: environment,
-        jsonRpcUrl: getRpcUrlForChain(effectiveChainId),
+        jsonRpcUrl: getBaseRpcUrl(),
       })
       const publicClient = createPublicClient({
-        chain: effectiveChainId === arbitrum.id ? arbitrum : base,
-        transport: http(getRpcUrlForChain(effectiveChainId)),
+        chain: base,
+        transport: http(getBaseRpcUrl()),
       })
       const denominator = await publicClient.readContract({
         address: vaultAddress,
@@ -113,13 +106,10 @@ export function useProVaultWithdraw({
       }
       let withdrawData: any
 
-      const helperContractAddress =
-        HELPER_CONTRACT_ADDRESSES[effectiveChainId] || HELPER_CONTRACT_ADDRESSES[base.id]
-
       try {
         // Use helper contract to check if direct withdrawal is possible
         const directWithdrawData = (await publicClient.readContract({
-          address: helperContractAddress,
+          address: HELPER_CONTRACT_ADDRESS,
           abi: helperABI,
           functionName: 'getIsDirectWithdrawals',
           args: [vaultAddress, valueToBigInt(tokenAmount)],

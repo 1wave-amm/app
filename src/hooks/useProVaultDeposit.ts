@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { erc20ABI } from '@factordao/contracts'
 import { ChainId } from '@factordao/sdk'
-import { StudioProVault, StudioProVaultStats, TokenMetadata } from '@factordao/sdk-studio'
+import { StudioProVault, StudioProVaultStats } from '@factordao/sdk-studio'
+import type { TokenMetadata } from '@factordao/sdk-studio'
 import BigNumber from 'bignumber.js'
 import { Address, base, createPublicClient, http } from 'viem'
 import { useSendTransaction, useWriteContract } from 'wagmi'
@@ -53,11 +54,6 @@ export function useProVaultDeposit({
   const handleDepositWithApproval = async () => {
     if (!token) return
 
-    // Validate chain ID before proceeding
-    if (!validateChainId(chainId)) {
-      throw new Error(`Unsupported chain ID: ${chainId}. Only Arbitrum (42161) and Base (8453) are supported.`)
-    }
-
     try {
       setIsLoading(true)
       setSteps({ approve: 'loading', deposit: 'idle' })
@@ -70,13 +66,13 @@ export function useProVaultDeposit({
           address: token.address,
           abi: erc20ABI,
           functionName: 'approve',
-          chain: { id: chainId, name: chainId === arbitrum.id ? 'Arbitrum' : 'Base' } as Chain,
+          chain: base,
           account: receiverAddress,
           args: [vaultAddress, BigInt(tokenAmount.toFixed(0))],
         })
         const publicClient = createPublicClient({
-          chain: chainId === arbitrum.id ? arbitrum : base,
-          transport: http(getRpcUrlForChain(chainId)),
+          chain: base,
+          transport: http(getBaseRpcUrl()),
         })
         const allowanceReceipt = await publicClient.waitForTransactionReceipt({
           hash,
@@ -87,13 +83,11 @@ export function useProVaultDeposit({
       }
       setSteps({ approve: 'success', deposit: 'loading' })
 
-      const sdkChainId = getSdkChainId(chainId)
-
       const proVault = new StudioProVault({
-        chainId: sdkChainId,
+        chainId: ChainId.BASE,
         vaultAddress,
         environment: environment,
-        jsonRpcUrl: getRpcUrlForChain(chainId),
+        jsonRpcUrl: getBaseRpcUrl(),
       })
 
       // Create deposit payload
@@ -107,10 +101,10 @@ export function useProVaultDeposit({
       let depositData
       try {
         const proVaultStats = new StudioProVaultStats({
-          chainId: sdkChainId,
+          chainId: ChainId.BASE,
           vaultAddress: vaultAddress as Address,
           environment: environment,
-          jsonRpcUrl: getRpcUrlForChain(chainId),
+          jsonRpcUrl: getBaseRpcUrl(),
         })
         const depositStrategy = await proVaultStats.getDepositStrategy()
 
@@ -122,12 +116,12 @@ export function useProVaultDeposit({
       }
       const hash = await sendTransactionAsync({
         ...depositData,
-        chainId: chainId,
+        chainId: BASE_CHAIN_ID,
       })
 
       const publicClient = createPublicClient({
-        chain: chainId === arbitrum.id ? arbitrum : base,
-        transport: http(getRpcUrlForChain(chainId)),
+        chain: base,
+        transport: http(getBaseRpcUrl()),
       })
       const depositReceipt = await publicClient.waitForTransactionReceipt({
         hash,
