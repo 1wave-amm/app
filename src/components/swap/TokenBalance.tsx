@@ -1,0 +1,115 @@
+import { useState } from "react"
+import { useReadContract } from "wagmi"
+import { formatUnits } from "viem"
+import { cn } from "@/lib/utils"
+
+// ERC20 ABI for balanceOf
+const ERC20_ABI = [
+  {
+    inputs: [{ name: "account", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const
+
+interface TokenBalanceProps {
+  tokenAddress: string | null
+  decimals?: number
+  userAddress: string | undefined
+  onAmountSelect: (amount: string) => void
+  className?: string
+}
+
+export function TokenBalance({
+  tokenAddress,
+  decimals = 18,
+  userAddress,
+  onAmountSelect,
+  className,
+}: TokenBalanceProps) {
+  const [isHovered, setIsHovered] = useState(false)
+
+  const { data: balance, isLoading } = useReadContract({
+    address: tokenAddress as `0x${string}` | undefined,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: userAddress ? [userAddress as `0x${string}`] : undefined,
+    query: {
+      enabled: !!tokenAddress && !!userAddress,
+    },
+  })
+
+  const formattedBalance = balance
+    ? parseFloat(formatUnits(balance as bigint, decimals))
+    : 0
+
+  const displayBalance = formattedBalance > 0
+    ? formattedBalance.toLocaleString(undefined, {
+        maximumFractionDigits: 6,
+        minimumFractionDigits: 0,
+      })
+    : "0"
+
+  const handlePercentClick = (percent: number) => {
+    const amount = (formattedBalance * percent).toString()
+    onAmountSelect(amount)
+  }
+
+  if (!tokenAddress || !userAddress) {
+    return null
+  }
+
+  return (
+    <div
+      className={cn("relative", className)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">
+          Balance: {isLoading ? "..." : displayBalance}
+        </span>
+        {formattedBalance > 0 && (
+          <div
+            className={cn(
+              "flex items-center gap-1 transition-opacity duration-200",
+              isHovered ? "opacity-100" : "opacity-0"
+            )}
+          >
+            <button
+              type="button"
+              onClick={() => handlePercentClick(0.25)}
+              className="text-xs px-1.5 py-0.5 rounded bg-aqua-500/10 hover:bg-aqua-500/20 text-aqua-600 dark:text-aqua-400 transition-colors"
+            >
+              25%
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePercentClick(0.5)}
+              className="text-xs px-1.5 py-0.5 rounded bg-aqua-500/10 hover:bg-aqua-500/20 text-aqua-600 dark:text-aqua-400 transition-colors"
+            >
+              50%
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePercentClick(0.75)}
+              className="text-xs px-1.5 py-0.5 rounded bg-aqua-500/10 hover:bg-aqua-500/20 text-aqua-600 dark:text-aqua-400 transition-colors"
+            >
+              75%
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePercentClick(1)}
+              className="text-xs px-1.5 py-0.5 rounded bg-aqua-500/10 hover:bg-aqua-500/20 text-aqua-600 dark:text-aqua-400 transition-colors"
+            >
+              MAX
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
