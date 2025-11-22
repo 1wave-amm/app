@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { studioProV1ABI } from '@factordao/contracts'
-import { ChainId, valueToBigInt, valueToBigNumber } from '@factordao/sdk'
+import { ChainId, valueToBigNumber } from '@factordao/sdk'
 import { StudioProVault } from '@factordao/sdk-studio'
 import { StrategyBuilder } from '@factordao/sdk-studio'
 import BigNumber from 'bignumber.js'
@@ -47,52 +46,33 @@ export function useProVaultWithdraw({
         chain: base,
         transport: http(getBaseRpcUrl()),
       })
-      const denominator = await publicClient.readContract({
-        address: vaultAddress,
-        abi: studioProV1ABI,
-        functionName: 'getDenominator',
-        args: [],
-      })
-
-      // Determine tokenAmount: use raw if provided, otherwise calculate from withdrawAmount
-      let tokenAmount: string
+      // For rawWithdraw, we need shares in raw format (BigInt), not formatted amount
+      // withdrawAmount is already in shares format (e.g. "5.5" shares)
+      // Shares always have 18 decimals, regardless of denominator token decimals
+      let sharesRaw: bigint
 
       if (withdrawAmountRaw) {
-        tokenAmount = withdrawAmountRaw
+        // If raw shares are provided, use them directly (already in raw format)
+        sharesRaw = BigInt(withdrawAmountRaw)
       } else {
-        let denominatorDecimals = 18
-        try {
-          const decimalsResult = await publicClient.readContract({
-            address: denominator as Address,
-            abi: [
-              {
-                name: 'decimals',
-                type: 'function',
-                stateMutability: 'view',
-                inputs: [],
-                outputs: [{ name: '', type: 'uint8' }],
-              },
-            ],
-            functionName: 'decimals',
-            args: [],
-          })
-          denominatorDecimals = Number(decimalsResult)
-        } catch (error) {
-          denominatorDecimals = 18
-        }
-
-        tokenAmount = BigNumber(withdrawAmount)
-          .multipliedBy(BigNumber(10).pow(denominatorDecimals))
-          .integerValue(BigNumber.ROUND_DOWN)
-          .toString()
+        // Convert formatted shares (e.g. "5.5") to raw shares (BigInt)
+        // Shares always use 18 decimals (like balanceOf returns)
+        sharesRaw = BigInt(
+          BigNumber(withdrawAmount)
+            .multipliedBy(BigNumber(10).pow(18)) // Shares always 18 decimals
+            .integerValue(BigNumber.ROUND_DOWN)
+            .toString()
+        )
       }
+
       // Use rawWithdraw with publishPairs strategy (as per 16-raw-withdraw.ts)
       // This ensures liquidity is updated on Aqua Protocol after withdrawal
       let withdrawData: any
 
       try {
         // Estimate raw withdraw to get available assets
-        const result = await proVault.estimateRawWithdrawExpectedAmount(valueToBigInt(tokenAmount))
+        // Pass shares raw directly (BigInt), not converted string
+        const result = await proVault.estimateRawWithdrawExpectedAmount(sharesRaw)
         // result[0] = shares
         // result[1] = totalSupply
         // result[2] = assets (address[])
@@ -122,8 +102,9 @@ export function useProVaultWithdraw({
         const withdrawBlocks = sbEncoder.getTransactions()
 
         // Execute rawWithdraw with publishPairs strategy
+        // shareAmountBN must be the raw shares (BigNumber), not formatted amount
         withdrawData = await proVault.rawWithdraw({
-          shareAmountBN: valueToBigNumber(tokenAmount),
+          shareAmountBN: valueToBigNumber(sharesRaw.toString()),
           receiverAddress,
           depositorAddress,
           withdrawBlocks, // publishPairs() will be executed after withdrawal
