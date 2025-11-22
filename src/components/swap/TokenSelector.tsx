@@ -238,7 +238,7 @@ export function TokenSelector({ value, onChange, className, showBalance = true, 
       const baseTokenAddressMap = new Map(
         validWhitelistedTokens.map(token => [token.address.toLowerCase(), token])
       )
-      
+        
       // Find all tokens from tokenlist that match baseTokens addresses
       const foundTokens = allTokens
         .filter((token: any) => {

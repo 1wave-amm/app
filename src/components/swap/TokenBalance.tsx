@@ -67,9 +67,9 @@ export function TokenBalance({
 
   return (
     <div className={cn("relative", className)}>
-      <span className="text-xs text-muted-foreground">
-        Balance: {isLoading ? "..." : displayBalance}
-      </span>
+        <span className="text-xs text-muted-foreground">
+          Balance: {isLoading ? "..." : displayBalance}
+        </span>
     </div>
   )
 }
