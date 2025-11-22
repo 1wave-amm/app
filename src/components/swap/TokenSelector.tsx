@@ -463,32 +463,32 @@ export function TokenSelector({ value, onChange, className, showBalance = true, 
             </>
           ) : (
             <>
-              {selectedToken ? (
-                <div className="flex items-center gap-2">
-                  {selectedToken.logoUrl && (
+          {selectedToken ? (
+            <div className="flex items-center gap-2">
+              {selectedToken.logoUrl && (
                     <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 bg-muted">
-                      <img
-                        src={selectedToken.logoUrl}
-                        alt={selectedToken.symbol}
-                        className="w-full h-full object-cover"
+                  <img
+                    src={selectedToken.logoUrl}
+                    alt={selectedToken.symbol}
+                    className="w-full h-full object-cover"
                         onError={(e) => {
                           // Hide image if it fails to load
                           e.currentTarget.style.display = 'none'
                         }}
-                      />
-                    </div>
-                  )}
-                  <span className="font-medium">{selectedToken.symbol}</span>
+                  />
                 </div>
-              ) : (
-                <span className="text-muted-foreground">Select token</span>
               )}
+              <span className="font-medium">{selectedToken.symbol}</span>
+            </div>
+          ) : (
+            <span className="text-muted-foreground">Select token</span>
+          )}
               <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-50" />
             </>
           )}
         </Button>
       </DialogTrigger>
-      <DialogContent variant="glass-apple" className="max-w-md">
+      <DialogContent variant="glass-apple" className="max-w-md" hideCloseButton>
         <DialogHeader>
           <div className="flex items-center gap-2">
             <DialogTitle>{title}</DialogTitle>
@@ -535,7 +535,7 @@ export function TokenSelector({ value, onChange, className, showBalance = true, 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-            <div className="max-h-[400px] overflow-y-auto space-y-1">
+          <div className="max-h-[400px] overflow-y-auto space-y-1">
             {filteredTokens.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No tokens found

@@ -9,9 +9,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react"
 import { TokenSelector } from "@/components/swap/TokenSelector"
-import { PairSelector } from "@/components/vault/PairSelector"
+import { PairSelector, SelectedPair } from "@/components/vault/PairSelector"
 import { useAccount } from "wagmi"
 import { useConnectModal } from "@rainbow-me/rainbowkit"
 import { getBaseTokenByAddress } from "@/lib/constants/baseTokens"
@@ -27,8 +27,15 @@ const vaultSchema = z.object({
   depositFee: z.number().min(0).max(5),
   withdrawFee: z.number().min(0).max(5),
   managementFee: z.number().min(0).max(2),
+  performanceFee: z.number().min(0).max(20),
   whitelistedTokens: z.array(z.string()).min(2, "Select at least 2 tokens"),
-  selectedPairs: z.array(z.string()).min(1, "Select at least one pair"),
+  selectedPairs: z.array(z.object({
+    pairId: z.string(),
+    fee: z.number().min(0.01, "Fee must be at least 0.01%").max(100),
+  })).min(1, "Select at least one pair").refine(
+    (pairs) => pairs.every((p) => p.fee > 0),
+    { message: "All pairs must have a fee set" }
+  ),
 })
 
 type VaultFormData = z.infer<typeof vaultSchema>
@@ -43,7 +50,7 @@ const steps = [
 export function CreateVaultWizard() {
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedTokens, setSelectedTokens] = useState<string[]>([])
-  const [selectedPairs, setSelectedPairs] = useState<string[]>([])
+  const [selectedPairs, setSelectedPairs] = useState<SelectedPair[]>([])
   const { isConnected, chainId = 8453 } = useAccount()
   const { openConnectModal } = useConnectModal()
 
@@ -62,8 +69,9 @@ export function CreateVaultWizard() {
       depositFee: 0,
       withdrawFee: 0,
       managementFee: 0,
+      performanceFee: 0,
       whitelistedTokens: [],
-      selectedPairs: [],
+      selectedPairs: [] as SelectedPair[],
     },
   })
 
@@ -227,7 +235,7 @@ export function CreateVaultWizard() {
   // Filter out invalid pairs when tokens change
   useEffect(() => {
     const validPairIds = generatePairs.map((pair) => pair.id)
-    const filteredPairs = selectedPairs.filter((pairId) => validPairIds.includes(pairId))
+    const filteredPairs = selectedPairs.filter((sp) => validPairIds.includes(sp.pairId))
     if (filteredPairs.length !== selectedPairs.length) {
       setSelectedPairs(filteredPairs)
       setValue("selectedPairs", filteredPairs)
@@ -340,6 +348,22 @@ export function CreateVaultWizard() {
               <p className="text-sm text-error">{errors.managementFee.message}</p>
             )}
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="performanceFee">Performance Fee (%)</Label>
+            <Input
+              id="performanceFee"
+              variant="glass"
+              type="number"
+              step="0.1"
+              min="0"
+              max="20"
+              {...register("performanceFee", { valueAsNumber: true })}
+            />
+            {errors.performanceFee && (
+              <p className="text-sm text-error">{errors.performanceFee.message}</p>
+            )}
+          </div>
         </div>
       )}
 
@@ -365,6 +389,12 @@ export function CreateVaultWizard() {
                 className="w-full"
             />
             </div>
+            {selectedTokens.length === 1 && (
+              <div className="flex items-center gap-1.5 text-xs text-orange-500">
+                <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                <span>Please select at least 2 tokens to create pairs</span>
+              </div>
+            )}
             {errors.whitelistedTokens && (
               <p className="text-sm text-error">
                 {errors.whitelistedTokens.message}
@@ -410,9 +440,9 @@ export function CreateVaultWizard() {
                 <PairSelector
                   pairs={generatePairs}
                   selected={selectedPairs}
-                  onMultiChange={(pairIds) => {
-                    setSelectedPairs(pairIds)
-                    setValue("selectedPairs", pairIds)
+                  onMultiChange={(pairs) => {
+                    setSelectedPairs(pairs)
+                    setValue("selectedPairs", pairs)
                   }}
                   className="w-full"
                   title="Select Pairs"
@@ -428,55 +458,63 @@ export function CreateVaultWizard() {
               {selectedPairs.length > 0 && (
                 <div className="flex flex-wrap gap-2 p-3 glass rounded-lg">
                   {generatePairs
-                    .filter((pair) => selectedPairs.includes(pair.id))
-                    .map((pair) => (
-                      <Badge
-                        key={pair.id}
-                        variant="secondary"
-                        className="glass flex items-center gap-1.5"
-                      >
-                        {/* Token A */}
-                        <div className="flex items-center gap-1">
-                          {(pair.tokenA?.logoURI || pair.tokenA?.logoUrl) && (
-                            <img
-                              src={pair.tokenA.logoURI || pair.tokenA.logoUrl}
-                              alt={pair.tokenA?.symbol || 'Token A'}
-                              className="w-4 h-4 rounded-full"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none'
-                              }}
-                            />
-                          )}
-                          <span>{pair.tokenA?.symbol || 'Unknown'}</span>
-                        </div>
-                        <span className="text-muted-foreground">/</span>
-                        {/* Token B */}
-                        <div className="flex items-center gap-1">
-                          {(pair.tokenB?.logoURI || pair.tokenB?.logoUrl) && (
-                            <img
-                              src={pair.tokenB.logoURI || pair.tokenB.logoUrl}
-                              alt={pair.tokenB?.symbol || 'Token B'}
-                              className="w-4 h-4 rounded-full"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none'
-                              }}
-                            />
-                          )}
-                          <span>{pair.tokenB?.symbol || 'Unknown'}</span>
-                        </div>
-                        <button
-                          onClick={() => {
-                            const newPairs = selectedPairs.filter((id) => id !== pair.id)
-                            setSelectedPairs(newPairs)
-                            setValue("selectedPairs", newPairs)
-                          }}
-                          className="ml-1 hover:opacity-70"
+                    .filter((pair) => selectedPairs.some((sp) => sp.pairId === pair.id))
+                    .map((pair) => {
+                      const selectedPair = selectedPairs.find((sp) => sp.pairId === pair.id)
+                      return (
+                        <Badge
+                          key={pair.id}
+                          variant="secondary"
+                          className="glass flex items-center gap-1.5"
                         >
-                          <X className="h-3 w-3" />
-                        </button>
-                  </Badge>
-                ))}
-              </div>
+                          {/* Token A */}
+                          <div className="flex items-center gap-1">
+                            {(pair.tokenA?.logoURI || pair.tokenA?.logoUrl) && (
+                              <img
+                                src={pair.tokenA.logoURI || pair.tokenA.logoUrl}
+                                alt={pair.tokenA?.symbol || 'Token A'}
+                                className="w-4 h-4 rounded-full"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none'
+                                }}
+                              />
+                            )}
+                            <span>{pair.tokenA?.symbol || 'Unknown'}</span>
+                          </div>
+                          <span className="text-muted-foreground">/</span>
+                          {/* Token B */}
+                          <div className="flex items-center gap-1">
+                            {(pair.tokenB?.logoURI || pair.tokenB?.logoUrl) && (
+                              <img
+                                src={pair.tokenB.logoURI || pair.tokenB.logoUrl}
+                                alt={pair.tokenB?.symbol || 'Token B'}
+                                className="w-4 h-4 rounded-full"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none'
+                                }}
+                              />
+                            )}
+                            <span>{pair.tokenB?.symbol || 'Unknown'}</span>
+                          </div>
+                          {selectedPair && selectedPair.fee > 0 && (
+                            <span className="text-xs text-muted-foreground ml-1">
+                              ({selectedPair.fee}%)
+                            </span>
+                          )}
+                          <button
+                            onClick={() => {
+                              const newPairs = selectedPairs.filter((sp) => sp.pairId !== pair.id)
+                              setSelectedPairs(newPairs)
+                              setValue("selectedPairs", newPairs)
+                            }}
+                            className="ml-1 hover:opacity-70"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      )
+                    })}
+                </div>
               )}
             </div>
           )}
@@ -499,7 +537,7 @@ export function CreateVaultWizard() {
               <div>
                 <span className="text-sm text-muted-foreground">Fees:</span>
                 <p className="font-medium">
-                  Deposit: {watch("depositFee")}% | Withdraw: {watch("withdrawFee")}% | Management: {watch("managementFee")}%
+                  Deposit: {watch("depositFee")}% | Withdraw: {watch("withdrawFee")}% | Management: {watch("managementFee")}% | Performance: {watch("performanceFee")}%
                 </p>
               </div>
               <div>
@@ -526,14 +564,22 @@ export function CreateVaultWizard() {
                 <span className="text-sm text-muted-foreground">Selected Pairs:</span>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {generatePairs
-                    .filter((pair) => selectedPairs.includes(pair.id))
-                    .map((pair) => (
-                      <Badge key={pair.id} variant="secondary" className="flex items-center gap-1">
-                        <span>{pair.tokenA?.symbol || 'Unknown'}</span>
-                        <span className="text-muted-foreground">/</span>
-                        <span>{pair.tokenB?.symbol || 'Unknown'}</span>
-                      </Badge>
-                    ))}
+                    .filter((pair) => selectedPairs.some((sp) => sp.pairId === pair.id))
+                    .map((pair) => {
+                      const selectedPair = selectedPairs.find((sp) => sp.pairId === pair.id)
+                      return (
+                        <Badge key={pair.id} variant="secondary" className="flex items-center gap-1">
+                          <span>{pair.tokenA?.symbol || 'Unknown'}</span>
+                          <span className="text-muted-foreground">/</span>
+                          <span>{pair.tokenB?.symbol || 'Unknown'}</span>
+                          {selectedPair && selectedPair.fee > 0 && (
+                            <span className="text-xs text-muted-foreground ml-1">
+                              ({selectedPair.fee}%)
+                            </span>
+                          )}
+                        </Badge>
+                      )
+                    })}
                 </div>
               </div>
             </div>
@@ -559,7 +605,11 @@ export function CreateVaultWizard() {
             onClick={nextStep}
             disabled={
               (currentStep === 1 && !watchedName) ||
-              (currentStep === 3 && (selectedTokens.length < 2 || selectedPairs.length < 1))
+              (currentStep === 3 && (
+                selectedTokens.length < 2 || 
+                selectedPairs.length < 1 || 
+                selectedPairs.some((sp) => sp.fee <= 0)
+              ))
             }
           >
             Next
