@@ -174,8 +174,8 @@ export function CreateVaultWizard() {
               tokenA: { ...baseTokenA, address: selectedTokens[i] }, 
               tokenB: { ...baseTokenB, address: selectedTokens[j] } 
             })
-          }
-        }
+      }
+    }
       }
     }
     

@@ -25,7 +25,7 @@ export function SwapInterface() {
   const [amountIn, setAmountIn] = useState("")
   const [amountOut, setAmountOut] = useState("")
   const [isHoveringSell, setIsHoveringSell] = useState(false)
-  const { chainId = 42161, isConnected, address } = useAccount()
+  const { chainId = 8453, isConnected, address } = useAccount() // BASE chain
   const { openConnectModal } = useConnectModal()
 
   // Get selected token info first
