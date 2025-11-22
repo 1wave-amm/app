@@ -17,7 +17,6 @@ export function ActionPreview({
     if (!value) return <span>0</span>
 
     const parts = value.split('.')
-    const wholeNumber = parts[0] || '0'
     const decimals = parts[1] || ''
 
     const leadingZeros = decimals.match(/^0+/)?.[0].length || 0

@@ -274,7 +274,7 @@ function extractAPY(apy?: VaultAPY | number): number | undefined {
 // BASE chain ID constant
 const BASE_CHAIN_ID = 8453
 
-function normalizeChainId(chain: string | number | undefined): number {
+function normalizeChainId(_chain: string | number | undefined): number {
   // Always return BASE chain ID
   return BASE_CHAIN_ID
 }

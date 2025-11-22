@@ -7,9 +7,9 @@ import { useAccount } from 'wagmi'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { Loader2, Settings } from 'lucide-react'
 import { Address, formatUnits, parseUnits } from 'viem'
-import { base } from 'viem/chains'
 import { StudioProVault } from '@factordao/sdk-studio'
-import { StudioProVaultPreviewWithdrawResult } from '@factordao/sdk-studio/types/studio-pro/modules/withdraw-module'
+// Type definition for withdraw preview result
+type StudioProVaultPreviewWithdrawResult = any
 import { useProVaultWithdraw } from '@/hooks/useProVaultWithdraw'
 import { ActionPreview } from './ActionPreview'
 import { PercentageSelector } from './PercentageSelector'

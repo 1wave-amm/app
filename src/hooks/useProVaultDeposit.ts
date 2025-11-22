@@ -2,7 +2,14 @@ import { useState } from 'react'
 import { erc20ABI } from '@factordao/contracts'
 import { ChainId } from '@factordao/sdk'
 import { StudioProVault, StudioProVaultStats } from '@factordao/sdk-studio'
-import type { TokenMetadata } from '@factordao/sdk-studio/types/adapter'
+// Type definition for token metadata
+type TokenMetadata = {
+  address: string
+  symbol: string
+  name: string
+  decimals: number
+  logoURI?: string
+}
 import BigNumber from 'bignumber.js'
 import { Address, createPublicClient, http } from 'viem'
 import { base } from 'viem/chains'
@@ -64,7 +71,7 @@ export function useProVaultDeposit({
         .integerValue(BigNumber.ROUND_DOWN)
       if (currentAllowance.isLessThan(tokenAmount)) {
         const hash = await writeContractAsync({
-          address: token.address,
+          address: token.address as Address,
           abi: erc20ABI,
           functionName: 'approve',
           chain: base,
@@ -107,7 +114,7 @@ export function useProVaultDeposit({
           environment: environment,
           jsonRpcUrl: getBaseRpcUrl(),
         })
-        const depositStrategy = await proVaultStats.getDepositStrategy()
+        await proVaultStats.getDepositStrategy() // Strategy fetched but not used
 
         // Use standard depositAsset method with the strategy info
         depositData = proVault.depositAsset(payload)

@@ -47,7 +47,7 @@ export function useProVaultWithdraw({
   depositorAddress,
   receiverAddress,
   onSuccess,
-  slippageTolerance,
+  slippageTolerance: _slippageTolerance,
   withdrawAmountRaw,
 }: UseProVaultWithdrawParams) {
   const [isWaitingForWithdraw, setIsWaitingForWithdraw] = useState(false)
@@ -135,7 +135,7 @@ export function useProVaultWithdraw({
           // This is a simplified version - in production you'd parse the exit strategy
           const result = await proVault.estimateRawWithdrawExpectedAmount(valueToBigInt(tokenAmount))
           const isWithdraw: boolean[] = []
-          for (const asset of result[2]) {
+          for (const _asset of result[2]) {
             isWithdraw.push(true)
           }
 

@@ -9,7 +9,8 @@ import { Loader2 } from 'lucide-react'
 import { Address, createPublicClient, erc20Abi, formatUnits, parseUnits, http, publicActions } from 'viem'
 import { base } from 'viem/chains'
 import { StudioProVault } from '@factordao/sdk-studio'
-import { StudioProVaultPreviewDespositResult } from '@factordao/sdk-studio/types/studio-pro/modules/deposit-module'
+// Type definition for deposit preview result
+type StudioProVaultPreviewDespositResult = any
 import { useProVaultDeposit } from '@/hooks/useProVaultDeposit'
 import { ActionPreview } from './ActionPreview'
 import { PercentageSelector } from './PercentageSelector'
@@ -43,22 +44,6 @@ interface DepositProps {
   availableTokens: Token[]
 }
 
-const formatUsdCompact = (value: number): string => {
-  if (value === 0) return '0.00'
-  if (value < 0.01) return '<0.01'
-  if (value < 1000) {
-    return value.toFixed(2)
-  }
-  if (value < 1000000) {
-    const kValue = value / 1000
-    if (kValue < 10) {
-      return kValue % 1 === 0 ? kValue.toFixed(0) + 'k' : kValue.toFixed(2).replace(/\.?0+$/, '') + 'k'
-    }
-    return kValue.toFixed(2).replace(/\.?0+$/, '') + 'k'
-  }
-  const mValue = value / 1000000
-  return mValue.toFixed(2).replace(/\.?0+$/, '') + 'm'
-}
 
 export function Deposit({ vault, availableTokens }: DepositProps) {
   const { address } = useAccount()
@@ -73,7 +58,6 @@ export function Deposit({ vault, availableTokens }: DepositProps) {
 
   const {
     handleDepositWithApproval,
-    steps: depositSteps,
     isLoading,
   } = useProVaultDeposit({
     vaultAddress: vault.address as Address,
@@ -206,18 +190,6 @@ export function Deposit({ vault, availableTokens }: DepositProps) {
     return denominatorToken?.decimals || 18
   }, [vault.metadata?.assetDenominatorAddress, vault.tokens])
 
-  const steps = [
-    {
-      step: 'Approve Tokens',
-      tooltipInfo: 'Approve Tokens',
-      status: depositSteps.approve,
-    },
-    {
-      step: 'Deposit Tokens',
-      tooltipInfo: 'Deposit Tokens',
-      status: depositSteps.deposit,
-    },
-  ]
 
   const handleDeposit = async () => {
     if (!isConnected && openConnectModal) {

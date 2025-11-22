@@ -1,5 +1,3 @@
-import { ChainId } from '@factordao/sdk'
-
 export const environment: 'testing' | 'production' =
   (import.meta.env.VITE_ENVIRONMENT as 'testing' | 'production') || 'production'
 
