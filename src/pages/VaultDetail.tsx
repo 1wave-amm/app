@@ -9,15 +9,13 @@ import { useQuery } from "@tanstack/react-query"
 import { VaultActions } from "@/components/vault/VaultActions"
 import { ArrowLeft } from "lucide-react"
 import { Link } from "react-router-dom"
+import { fetchVaultByAddress, AggregatedVault } from "@/services/vaultService"
+import { useVaultUserShares } from "@/hooks/useVaultUserShares"
+import { Address } from "viem"
 
 const STATS_API_BASE_URL = import.meta.env.VITE_STATS_API_BASE_URL || ""
 
-interface VaultDetail {
-  address: string
-  name: string
-  chainId: number
-  tvl?: string
-  apy?: number
+interface VaultDetail extends AggregatedVault {
   tokens?: Array<{
     address: string
     symbol: string
@@ -27,7 +25,6 @@ interface VaultDetail {
     isDepositAsset?: boolean
     isWithdrawAsset?: boolean
   }>
-  description?: string
 }
 
 async function fetchVaultDetail(address: string): Promise<VaultDetail | null> {
@@ -37,17 +34,48 @@ async function fetchVaultDetail(address: string): Promise<VaultDetail | null> {
   }
 
   try {
+    // Try to fetch from aggregated service first
+    const aggregatedVault = await fetchVaultByAddress(address)
+    if (aggregatedVault) {
+      // Transform to VaultDetail format
+      const depositTokens = aggregatedVault.depositTokens || aggregatedVault.tokens || []
+      const withdrawTokens = aggregatedVault.withdrawTokens || aggregatedVault.tokens || []
+      
+      return {
+        ...aggregatedVault,
+        tokens: aggregatedVault.tokens?.map(token => ({
+          address: token.address,
+          symbol: token.symbol,
+          name: token.name,
+          logoURI: token.logoUrl,
+          decimals: token.decimals,
+          isDepositAsset: depositTokens.some(t => t.address.toLowerCase() === token.address.toLowerCase()),
+          isWithdrawAsset: withdrawTokens.some(t => t.address.toLowerCase() === token.address.toLowerCase()),
+        })) || [],
+      }
+    }
+
+    // Fallback to direct API call
     const response = await fetch(`${STATS_API_BASE_URL}/strategies/${address}`)
     const data = await response.json()
     
     return {
       address: data.address || address,
       name: data.name,
-      chainId: data.chainId || 42161,
-      tvl: data.tvl,
-      apy: data.apy,
+      chainId: data.chainId || 8453,
+      tvl: data.tvl || data.tvlUsd,
+      apy: data.apy || data.calculated_apy,
       tokens: data.tokens || [],
       description: data.description,
+      pricePerShareUsd: data.pricePerShareUsd,
+      performance24h: data.performance24h,
+      performance7d: data.performance7d,
+      performance30d: data.performance30d,
+      performance90d: data.performance90d,
+      vaultAnalytics: data.vaultAnalytics,
+      protocols: data.protocols,
+      depositStrategy: data.depositStrategy,
+      balances: data.balances,
     }
   } catch (error) {
     console.error("Error fetching vault detail:", error)
@@ -64,6 +92,22 @@ export function VaultDetail() {
     queryFn: () => fetchVaultDetail(address!),
     enabled: !!address,
   })
+
+  // Fetch user shares
+  const { userShares } = useVaultUserShares({
+    vaultAddress: vault?.address as Address,
+    chainId: vault?.chainId,
+    pricePerShareUsd: vault?.pricePerShareUsd,
+    denominatorAddress: vault?.metadata?.assetDenominatorAddress as Address,
+  })
+
+  // Merge user shares into vault data
+  const vaultWithShares = vault
+    ? {
+        ...vault,
+        userShares,
+      }
+    : null
 
   if (isLoading) {
     return (
@@ -99,18 +143,30 @@ export function VaultDetail() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link to="/vaults">
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-4xl font-bold text-foreground">{vault.name}</h1>
-          <p className="text-muted-foreground mt-1">
-            {vault.address.slice(0, 6)}...{vault.address.slice(-4)}
-          </p>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/vaults">
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-4xl font-bold text-foreground">{vault.name}</h1>
+            <p className="text-muted-foreground mt-1">
+              {vault.address.slice(0, 6)}...{vault.address.slice(-4)}
+            </p>
+          </div>
         </div>
+        <Button
+          variant="glass-apple"
+          className="rounded-full"
+          onClick={() => {
+            // TODO: Implement rebalance pairs price functionality
+            console.log("Rebalance Pairs Price clicked")
+          }}
+        >
+          Rebalance Pairs Price
+        </Button>
       </div>
 
       {/* Vault Info */}
@@ -119,18 +175,36 @@ export function VaultDetail() {
           <CardTitle>Vault Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">TVL</p>
               <p className="text-2xl font-bold">
-                {vault.tvl ? `$${parseFloat(vault.tvl).toLocaleString()}` : "N/A"}
+                {vault.tvlUsd ? `$${parseFloat(vault.tvlUsd).toLocaleString()}` : "N/A"}
               </p>
             </div>
-            {vault.apy && (
+            {vault.apy !== undefined && (
               <div>
                 <p className="text-sm text-muted-foreground">APY</p>
                 <p className="text-2xl font-bold text-green-500">
                   {vault.apy.toFixed(2)}%
+                </p>
+              </div>
+            )}
+            {vault.pricePerShareUsd && (
+              <div>
+                <p className="text-sm text-muted-foreground">Share Price</p>
+                <p className="text-2xl font-bold">
+                  ${parseFloat(vault.pricePerShareUsd).toFixed(6)}
+                </p>
+              </div>
+            )}
+            {vault.performance7d && (
+              <div>
+                <p className="text-sm text-muted-foreground">7D Performance</p>
+                <p className={`text-2xl font-bold ${
+                  vault.performance7d.pnl?.startsWith('-') ? 'text-red-500' : 'text-green-500'
+                }`}>
+                  {vault.performance7d.pnl || '0%'}
                 </p>
               </div>
             )}
@@ -143,9 +217,22 @@ export function VaultDetail() {
             </div>
           )}
 
+          {vault.protocols && vault.protocols.length > 0 && (
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">Protocols ({vault.protocols.length})</p>
+              <div className="flex flex-wrap gap-2">
+                {vault.protocols.map((protocol, idx) => (
+                  <Badge key={idx} variant="secondary" className="glass">
+                    {protocol}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
           {vault.tokens && vault.tokens.length > 0 && (
             <div>
-              <p className="text-sm text-muted-foreground mb-2">Supported Tokens</p>
+              <p className="text-sm text-muted-foreground mb-2">Supported Tokens ({vault.tokens.length})</p>
               <div className="flex flex-wrap gap-2">
                 {vault.tokens.map((token, idx) => (
                   <Badge key={idx} variant="secondary" className="glass">
@@ -178,14 +265,14 @@ export function VaultDetail() {
             </TabsList>
             <TabsContent value="deposit">
               <VaultActions
-                vault={vault}
+                vault={vaultWithShares || vault}
                 mode="deposit"
                 availableTokens={depositTokens}
               />
             </TabsContent>
             <TabsContent value="withdraw">
               <VaultActions
-                vault={vault}
+                vault={vaultWithShares || vault}
                 mode="withdraw"
                 availableTokens={withdrawTokens}
               />
