@@ -16,8 +16,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useAccount, useReadContract } from "wagmi"
-
-const VAULT_NAME_PREFIX = "ethGlobal - wave: "
 import { TrendingUp, TrendingDown, Minus, Filter, X } from "lucide-react"
 import { BASE_WHITELISTED_TOKENS } from "@/lib/constants/baseTokens"
 import { FactorTokenlist } from "@factordao/tokenlist"
