@@ -226,14 +226,13 @@ export function VaultDetail() {
     : null
 
   // IMPORTANT: All hooks must be called before any early returns
-  // Read balances for all supported tokens using viem multicall
-  const { address: userAddress, isConnected } = useAccount()
-  const supportedTokens = enrichedVault?.tokens || []
+  // Read balances for all supported tokens using viem multicall (vault balances, not user balances)
+  const supportedTokens = useMemo(() => enrichedVault?.tokens || [], [enrichedVault?.tokens])
   const [tokenBalances, setTokenBalances] = useState<Map<string, { balance: bigint; formatted: string }>>(new Map())
   const [isLoadingBalances, setIsLoadingBalances] = useState(false)
 
   useEffect(() => {
-    if (!isConnected || !userAddress || supportedTokens.length === 0 || !enrichedVault?.chainId) {
+    if (supportedTokens.length === 0 || !enrichedVault?.chainId || !enrichedVault?.address) {
       setTokenBalances(new Map())
       return
     }
@@ -246,12 +245,12 @@ export function VaultDetail() {
           transport: http(getBaseRpcUrl()),
         })
 
-        // Prepare multicall contracts for balances
+        // Prepare multicall contracts for balances - using vault address instead of user address
         const balanceContracts = supportedTokens.map((token) => ({
           address: token.address as Address,
           abi: erc20ABI,
           functionName: 'balanceOf' as const,
-          args: [userAddress as Address] as const,
+          args: [enrichedVault.address as Address] as const,
         }))
 
         // Only fetch decimals on-chain for tokens that don't have decimals in metadata
@@ -357,7 +356,7 @@ export function VaultDetail() {
     }
 
     fetchBalances()
-  }, [supportedTokens, isConnected, userAddress, enrichedVault?.chainId])
+  }, [supportedTokens, enrichedVault?.chainId, enrichedVault?.address])
 
   if (isLoading) {
     return (
@@ -503,12 +502,10 @@ export function VaultDetail() {
           {enrichedVault.tokens && enrichedVault.tokens.length > 0 && (
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Supported Tokens ({enrichedVault.tokens.length})</p>
+                <p className="text-sm text-muted-foreground mb-2">Supported Tokens | Balance ({enrichedVault.tokens.length})</p>
                 <div className="flex flex-wrap gap-1.5">
                   {enrichedVault.tokens.map((token, idx) => {
-                    const tokenBalance = isConnected && userAddress 
-                      ? tokenBalances.get(token.address.toLowerCase())
-                      : null
+                    const tokenBalance = tokenBalances.get(token.address.toLowerCase())
                     
                     return (
                       <Badge 
@@ -534,11 +531,9 @@ export function VaultDetail() {
                           </div>
                         )}
                         <span className="font-semibold">{token.symbol || 'Unknown'}</span>
-                        {isConnected && userAddress && (
-                          <span className="text-[10px] text-muted-foreground ml-0.5">
-                            {isLoadingBalances ? '...' : tokenBalance ? tokenBalance.formatted : '0'}
-                          </span>
-                        )}
+                        <span className="text-[10px] text-muted-foreground ml-0.5">
+                          {isLoadingBalances ? '...' : tokenBalance ? tokenBalance.formatted : '0'}
+                        </span>
                       </Badge>
                     )
                   })}
