@@ -129,8 +129,8 @@ export function VaultDetail() {
       const tokenlist = new FactorTokenlist(chainId as any)
       const allTokens = tokenlist.getAllGeneralTokens()
       
-      // Create whitelisted tokens map
-      const whitelistedTokensMap = new Map<string, { symbol: string; name: string; logoUrl: string }>()
+      // Create whitelisted tokens map with decimals
+      const whitelistedTokensMap = new Map<string, { symbol: string; name: string; logoUrl: string; decimals: number }>()
       BASE_WHITELISTED_TOKENS.forEach((baseToken) => {
         const tokenlistToken = allTokens.find((t: any) => 
           t.address?.toLowerCase() === baseToken.address.toLowerCase()
@@ -139,6 +139,7 @@ export function VaultDetail() {
           symbol: tokenlistToken?.symbol || baseToken.symbol,
           name: tokenlistToken?.name || baseToken.name,
           logoUrl: tokenlistToken?.logoUrl || baseToken.logoURI || '',
+          decimals: tokenlistToken?.decimals ?? baseToken.decimals,
         })
       })
 
@@ -151,15 +152,15 @@ export function VaultDetail() {
           t.address?.toLowerCase() === addressLower
         )
         
-        // If token is whitelisted, use whitelisted data but keep decimals from tokenlist
+        // If token is whitelisted, use whitelisted data including decimals
         if (whitelistedToken) {
           return {
             ...token,
             symbol: whitelistedToken.symbol || token.symbol,
             name: whitelistedToken.name || token.name,
             logoURI: whitelistedToken.logoUrl || token.logoURI,
-            // Use decimals from tokenlist if available, otherwise keep original
-            decimals: tokenlistToken?.decimals ?? token.decimals ?? 18,
+            // Use decimals from whitelisted token (most reliable source)
+            decimals: whitelistedToken.decimals,
           }
         }
         
@@ -283,63 +284,89 @@ export function VaultDetail() {
           args: [userAddress as Address] as const,
         }))
 
-        // Prepare multicall contracts for decimals
-        const decimalsContracts = supportedTokens.map((token) => ({
-          address: token.address as Address,
-          abi: erc20ABI,
-          functionName: 'decimals' as const,
-        }))
+        // Only fetch decimals on-chain for tokens that don't have decimals in metadata
+        const needDecimalsOnChain = supportedTokens.map((token) => !token.decimals)
+        const decimalsContracts = supportedTokens
+          .filter((_, index) => needDecimalsOnChain[index])
+          .map((token) => ({
+            address: token.address as Address,
+            abi: erc20ABI,
+            functionName: 'decimals' as const,
+          }))
 
-        // Execute multicalls in parallel
+        // Execute multicalls - only fetch decimals if needed
         const [balanceResults, decimalsResults] = await Promise.all([
           publicClient.multicall({ contracts: balanceContracts }),
-          publicClient.multicall({ contracts: decimalsContracts }),
+          decimalsContracts.length > 0 
+            ? publicClient.multicall({ contracts: decimalsContracts })
+            : Promise.resolve([]),
         ])
 
         // Process results and create balance map
         const balances = new Map<string, { balance: bigint; formatted: string }>()
+        let decimalsResultIndex = 0
         
         balanceResults.forEach((result, index) => {
           const token = supportedTokens[index]
-          const decimalsResult = decimalsResults[index]
           
           if (token && result.status === 'success' && result.result) {
             const balance = result.result as bigint
             
-            // Get decimals from multicall result, fallback to token metadata or 18
+            // Prioritize token metadata decimals, then on-chain, then default to 18
             let decimals = 18
-            if (decimalsResult?.status === 'success' && decimalsResult.result !== undefined) {
-              decimals = Number(decimalsResult.result)
-            } else if (token.decimals) {
+            
+            if (token.decimals !== undefined && token.decimals !== null) {
+              // Use decimals from token metadata (from tokenlist/whitelist)
               decimals = token.decimals
+            } else if (needDecimalsOnChain[index]) {
+              // Try to get from on-chain multicall result
+              const decimalsResult = decimalsResults[decimalsResultIndex]
+              decimalsResultIndex++
+              if (decimalsResult?.status === 'success' && decimalsResult.result !== undefined) {
+                decimals = Number(decimalsResult.result)
+              }
             }
             
             const formatted = formatUnits(balance, decimals)
             const balanceNum = parseFloat(formatted)
             
-            // Format balance for display with proper precision based on decimals
+            // Format balance for display with proper precision based on token decimals
             let displayBalance = '0'
             if (balanceNum > 0) {
-              // For very small numbers, show more precision
-              if (balanceNum < 0.0001) {
-                // Show up to 6 significant digits for very small numbers
-                const significantDigits = Math.max(decimals <= 6 ? 6 : 8, 4)
-                displayBalance = balanceNum.toFixed(significantDigits).replace(/\.?0+$/, '')
-                if (displayBalance === '0' || displayBalance === '') {
-                  displayBalance = '<0.0001'
-                }
-              } else if (balanceNum >= 1_000_000) {
+              // For very large numbers, use K/M notation
+              if (balanceNum >= 1_000_000) {
                 displayBalance = `${(balanceNum / 1_000_000).toFixed(2)}M`
-              } else if (balanceNum >= 1_000) {
+              } else if (balanceNum >= 10_000) {
                 displayBalance = `${(balanceNum / 1_000).toFixed(2)}K`
               } else {
-                // For normal numbers, show appropriate decimal places based on token decimals
-                const maxDecimals = decimals <= 6 ? 6 : 8
-                const minDecimals = balanceNum < 1 ? 4 : 2
+                // For normal numbers, use appropriate decimal places
+                // Determine display decimals based on token decimals and value
+                let displayDecimals = 2
+                
+                if (balanceNum < 0.01) {
+                  // Very small amounts: show more decimals
+                  displayDecimals = Math.min(decimals, 6)
+                } else if (balanceNum < 1) {
+                  // Small amounts: show 4 decimals
+                  displayDecimals = 4
+                } else if (balanceNum >= 1000) {
+                  // Larger amounts: show fewer decimals
+                  displayDecimals = 2
+                } else {
+                  // Normal amounts: show 2-4 decimals based on token
+                  displayDecimals = decimals <= 6 ? 2 : 4
+                }
+                
+                // Format with the determined number of decimals
                 displayBalance = balanceNum.toLocaleString('en-US', {
-                  maximumFractionDigits: maxDecimals,
-                  minimumFractionDigits: minDecimals,
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: displayDecimals,
                 })
+                
+                // Remove trailing zeros after decimal point
+                if (displayBalance.includes('.')) {
+                  displayBalance = displayBalance.replace(/\.?0+$/, '')
+                }
               }
             }
             

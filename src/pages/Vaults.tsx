@@ -84,9 +84,24 @@ export function Vaults() {
 
   const { data: vaults, isLoading, error } = useQuery<AggregatedVault[]>({
     queryKey: ["vaults"],
-    queryFn: fetchAggregatedVaults,
+    queryFn: async () => {
+      console.log('[Vaults Page] Starting to fetch vaults...')
+      const result = await fetchAggregatedVaults()
+      console.log(`[Vaults Page] Received ${result.length} vaults`)
+      return result
+    },
     retry: 2,
   })
+  
+  // Log when vaults data changes
+  useEffect(() => {
+    if (vaults) {
+      console.log('[Vaults Page] Vaults data updated:', {
+        count: vaults.length,
+        vaults: vaults.map(v => ({ address: v.address, name: v.name, aquaPairsCount: v.aquaPairs?.length || 0 }))
+      })
+    }
+  }, [vaults])
 
   // Get whitelisted tokens with logos from FactorTokenlist
   const whitelistedTokensMap = useMemo(() => {
@@ -709,13 +724,26 @@ export function Vaults() {
               </p>
             </Card>
       ) : filteredVaults.length === 0 ? (
-        <Card variant="glass-apple" className="text-center p-8">
-          <p className="text-muted-foreground">
+        <Card variant="glass-apple" className="text-center p-8 space-y-3">
+          <p className="text-muted-foreground text-lg font-semibold">
             {search ? "No vaults found matching your search" : "No vaults available"}
           </p>
               {!search && vaults && vaults.length === 0 && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  No vaults found with prefix "{VAULT_NAME_PREFIX}"
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    No vaults with Aqua pairs found in the subgraph
+                  </p>
+                  <div className="text-xs text-muted-foreground space-y-1 mt-4 p-4 bg-muted/30 rounded-lg">
+                    <p className="font-mono">Debug Info:</p>
+                    <p>• Check browser console for detailed logs</p>
+                    <p>• Vaults are loaded from the Goldsky subgraph</p>
+                    <p>• Only vaults with registered Aqua pairs are shown</p>
+                  </div>
+                </>
+              )}
+              {!search && selectedTokens.size === 0 && selectedPairs.size === 0 && !myBalance && vaults && vaults.length > 0 && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Try clearing your filters or adjusting your search
                 </p>
               )}
         </Card>
