@@ -59,7 +59,7 @@ const SECTIONS = [
 ]
 
 export function Landing() {
-  const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
+  const [, setCurrentSectionIndex] = useState(0)
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

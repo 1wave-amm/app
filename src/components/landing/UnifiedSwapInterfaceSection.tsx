@@ -1,4 +1,4 @@
-import { Card, CardContent, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Container } from "@/components/atomic/Container"
 import { ArrowLeftRight, Route, Shield, Zap, TrendingUp } from "lucide-react"
