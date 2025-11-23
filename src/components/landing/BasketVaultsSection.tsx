@@ -64,9 +64,9 @@ export function BasketVaultsSection() {
         </div>
 
         {/* Featured Vault Showcase */}
-        <div className="w-full px-4 sm:px-8">
+        <div id="featured-vault-section" className="w-full px-4 sm:px-8 scroll-mt-20">
           <div className="text-center mb-6">
-            <Badge id="featured-vault-section" variant="outline" className="glass-apple mb-2 scroll-mt-20">
+            <Badge variant="outline" className="glass-apple mb-2">
               Featured Vault
             </Badge>
             <h3 className="text-xl sm:text-2xl font-bold">

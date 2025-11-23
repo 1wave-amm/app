@@ -11,8 +11,36 @@ import { RebalancingSection } from "@/components/landing/RebalancingSection"
 import { MiniDEXSection } from "@/components/landing/MiniDEXSection"
 import { CTASection } from "@/components/landing/CTASection"
 import { UnifiedSwapInterfaceSection } from "@/components/landing/UnifiedSwapInterfaceSection"
+import { RoadmapSection } from "@/components/landing/RoadmapSection"
 import { ThanksSection } from "@/components/landing/ThanksSection"
 import { AnimatedWaveBackground } from "@/components/landing/AnimatedWaveBackground"
+
+// Roadmap steps
+const ROADMAP_STEPS = [
+  'roadmap-step-1',
+  'roadmap-step-2',
+  'roadmap-step-3',
+  'roadmap-step-4',
+  'roadmap-step-5',
+  'roadmap-step-6',
+  'roadmap-step-7',
+  'roadmap-step-8',
+  'roadmap-step-9',
+  'roadmap-step-10',
+  'roadmap-step-11',
+  'roadmap-step-12',
+  'roadmap-step-13',
+  'roadmap-step-14',
+  'roadmap-step-15',
+  'roadmap-step-16',
+  'roadmap-step-17',
+  'roadmap-step-18',
+  'roadmap-step-19',
+  'roadmap-step-20',
+  'roadmap-step-21',
+  'roadmap-step-22',
+  'roadmap-step-23',
+]
 
 // Sezioni navigabili in ordine
 const SECTIONS = [
@@ -25,6 +53,8 @@ const SECTIONS = [
   'factor-sdk-section',
   'rebalancing-section',
   'unified-swap-section',
+  'roadmap-section', // Badge "Future Brainstorming Ideas / Roadmap"
+  ...ROADMAP_STEPS,
   'thanks-section',
 ]
 
@@ -62,7 +92,21 @@ export function Landing() {
       const sectionId = SECTIONS[index]
       const element = document.getElementById(sectionId)
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        // Se è un passo della roadmap, scrolla orizzontalmente
+        if (sectionId.startsWith('roadmap-step-')) {
+          const roadmapContainer = document.querySelector('.roadmap-carousel')
+          if (roadmapContainer) {
+            const containerRect = roadmapContainer.getBoundingClientRect()
+            const elementRect = element.getBoundingClientRect()
+            const scrollLeft = roadmapContainer.scrollLeft + (elementRect.left - containerRect.left) - (containerRect.width / 2) + (elementRect.width / 2)
+            roadmapContainer.scrollTo({ left: scrollLeft, behavior: 'smooth' })
+          }
+          // Scroll verticale per portare la sezione in vista
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        } else {
+          // Scroll normale per altre sezioni
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
       }
     }
 
@@ -102,6 +146,7 @@ export function Landing() {
         </div>
         <UnifiedSwapInterfaceSection />
         <MiniDEXSection />
+        <RoadmapSection />
         <ThanksSection />
       </div>
       {/* Mobile Footer Navigation */}
