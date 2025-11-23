@@ -5,6 +5,7 @@ import { ArrowDown, Loader2, CheckCircle2, XCircle } from "lucide-react"
 import { TokenSelector } from "./TokenSelector"
 import { SlippageSelector } from "./SlippageSelector"
 import { PairSelector } from "./PairSelector"
+import { SwapSuccess } from "./SwapSuccess"
 import { FactorTokenlist } from "@factordao/tokenlist"
 import { useAccount, useReadContract } from "wagmi"
 import { useConnectModal } from "@rainbow-me/rainbowkit"
@@ -124,7 +125,7 @@ export function SwapInterface() {
   // Swap execution hook
   const slippageBps = useMemo(() => percentageToBps(slippage), [slippage])
   
-  const { handleSwap, isLoading: isSwapping, steps, needsApproval } = useAquaSwap({
+  const { handleSwap, isLoading: isSwapping, steps, needsApproval, transactionHash, reset } = useAquaSwap({
     tokenIn: tokenIn as Address,
     tokenOut: tokenOut as Address,
     amountIn,
@@ -136,11 +137,16 @@ export function SwapInterface() {
     zeroForOne,
     quote,
     onSuccess: () => {
-      // Refresh balances and reset amounts
-      setAmountIn("")
-      setAmountOut("")
+      // Keep amounts for display in success component
+      // We'll reset them when user closes the success component
     },
   })
+
+  const handleCloseSuccess = () => {
+    reset()
+    setAmountIn("")
+    setAmountOut("")
+  }
 
   const handleFlipTokens = () => {
     const temp = tokenIn
@@ -156,6 +162,20 @@ export function SwapInterface() {
     const balance = parseFloat(tokenBalance)
     const amount = (balance * percentage).toString()
     setAmountIn(amount)
+  }
+
+  // Show success component when swap is completed
+  if (steps.swap === 'success' && transactionHash && tokenIn && tokenOut && amountIn && amountOut) {
+    return (
+      <SwapSuccess
+        tokenIn={tokenIn}
+        tokenOut={tokenOut}
+        amountIn={amountIn}
+        amountOut={amountOut}
+        transactionHash={transactionHash}
+        onClose={handleCloseSuccess}
+      />
+    )
   }
 
   return (

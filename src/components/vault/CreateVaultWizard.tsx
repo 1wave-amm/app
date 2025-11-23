@@ -112,13 +112,13 @@ export function CreateVaultWizard() {
       return
     }
 
+    // Warn about Alchemy API key but don't block (app will use public RPC as fallback)
     if (!alchemyApiKey) {
       toast({
-        title: "Configuration Error",
-        description: "Alchemy API key not configured. Please set VITE_ALCHEMY_API_KEY in your environment.",
-        variant: "destructive",
+        title: "Performance Warning",
+        description: "Using public RPC (rate limits apply). For better performance, configure VITE_ALCHEMY_API_KEY.",
+        variant: "default",
       })
-      return
     }
 
     // Open deployment modal

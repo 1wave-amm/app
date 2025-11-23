@@ -16,8 +16,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useAccount, useReadContract } from "wagmi"
-
-const VAULT_NAME_PREFIX = "ethGlobal - wave: "
 import { TrendingUp, TrendingDown, Minus, Filter, X } from "lucide-react"
 import { BASE_WHITELISTED_TOKENS } from "@/lib/constants/baseTokens"
 import { FactorTokenlist } from "@factordao/tokenlist"
@@ -82,11 +80,13 @@ export function Vaults() {
   const [myBalance, setMyBalance] = useState(false)
   const { chainId = 8453, address, isConnected } = useAccount()
 
+
   const { data: vaults, isLoading, error } = useQuery<AggregatedVault[]>({
     queryKey: ["vaults"],
     queryFn: fetchAggregatedVaults,
     retry: 2,
   })
+  
 
   // Get whitelisted tokens with logos from FactorTokenlist
   const whitelistedTokensMap = useMemo(() => {
@@ -709,13 +709,26 @@ export function Vaults() {
               </p>
             </Card>
       ) : filteredVaults.length === 0 ? (
-        <Card variant="glass-apple" className="text-center p-8">
-          <p className="text-muted-foreground">
+        <Card variant="glass-apple" className="text-center p-8 space-y-3">
+          <p className="text-muted-foreground text-lg font-semibold">
             {search ? "No vaults found matching your search" : "No vaults available"}
           </p>
               {!search && vaults && vaults.length === 0 && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  No vaults found with prefix "{VAULT_NAME_PREFIX}"
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    No vaults with Aqua pairs found in the subgraph
+                  </p>
+                  <div className="text-xs text-muted-foreground space-y-1 mt-4 p-4 bg-muted/30 rounded-lg">
+                    <p className="font-mono">Debug Info:</p>
+                    <p>• Check browser console for detailed logs</p>
+                    <p>• Vaults are loaded from the Goldsky subgraph</p>
+                    <p>• Only vaults with registered Aqua pairs are shown</p>
+                  </div>
+                </>
+              )}
+              {!search && selectedTokens.size === 0 && selectedPairs.size === 0 && !myBalance && vaults && vaults.length > 0 && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Try clearing your filters or adjusting your search
                 </p>
               )}
         </Card>
@@ -777,7 +790,7 @@ export function Vaults() {
                         </div>
                       )}
                       
-                      {/* Name, Address, Protocols, and Fees */}
+                      {/* Name, Address, and Protocols */}
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-base font-bold line-clamp-2 mb-0.5">
                           {displayName}
@@ -786,7 +799,7 @@ export function Vaults() {
                           {vault.address.slice(0, 6)}...{vault.address.slice(-4)}
                         </p>
                         {vault.protocols && vault.protocols.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-1.5">
+                          <div className="flex flex-wrap gap-1">
                             {vault.protocols.slice(0, 3).map((protocol, idx) => (
                               <Badge key={idx} variant="outline" className="text-[8px] px-1 py-0.5 h-3.5">
                                 {protocol}
@@ -799,40 +812,41 @@ export function Vaults() {
                             )}
                           </div>
                         )}
-                        {/* Fees Section - Under Name and Address */}
-                        {(vault.managementFee || vault.depositFee || vault.withdrawFee || vault.performanceFee) && (
-                          <div className="space-y-1">
-                            <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wide">Fees</p>
-                            <div className="flex flex-wrap gap-1">
-                              {vault.managementFee && (
-                                <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] bg-muted/50 border border-border/30">
-                                  <span className="text-muted-foreground">Mgmt:</span>
-                                  <span className="font-semibold">{formatFee(vault.managementFee)}</span>
-                                </div>
-                              )}
-                              {vault.depositFee && (
-                                <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] bg-muted/50 border border-border/30">
-                                  <span className="text-muted-foreground">Dep:</span>
-                                  <span className="font-semibold">{formatFee(vault.depositFee)}</span>
-                                </div>
-                              )}
-                              {vault.withdrawFee && (
-                                <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] bg-muted/50 border border-border/30">
-                                  <span className="text-muted-foreground">Wth:</span>
-                                  <span className="font-semibold">{formatFee(vault.withdrawFee)}</span>
-                                </div>
-                              )}
-                              {vault.performanceFee && (
-                                <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] bg-muted/50 border border-border/30">
-                                  <span className="text-muted-foreground">Perf:</span>
-                                  <span className="font-semibold">{formatFee(vault.performanceFee)}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
+
+                    {/* Fees Section - Full Width Below */}
+                    {(vault.managementFee || vault.depositFee || vault.withdrawFee || vault.performanceFee) && (
+                      <div className="space-y-1 pt-2 border-t border-border/20">
+                        <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wide">Fees</p>
+                        <div className="flex flex-wrap gap-1">
+                          {vault.depositFee && (
+                            <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] bg-muted/50 border border-border/30">
+                              <span className="text-muted-foreground">Dep:</span>
+                              <span className="font-semibold">{formatFee(vault.depositFee)}</span>
+                            </div>
+                          )}
+                          {vault.withdrawFee && (
+                            <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] bg-muted/50 border border-border/30">
+                              <span className="text-muted-foreground">Wth:</span>
+                              <span className="font-semibold">{formatFee(vault.withdrawFee)}</span>
+                            </div>
+                          )}
+                          {vault.performanceFee && (
+                            <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] bg-muted/50 border border-border/30">
+                              <span className="text-muted-foreground">Perf:</span>
+                              <span className="font-semibold">{formatFee(vault.performanceFee)}</span>
+                            </div>
+                          )}
+                          {vault.managementFee && (
+                            <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] bg-muted/50 border border-border/30">
+                              <span className="text-muted-foreground">Mgmt:</span>
+                              <span className="font-semibold">{formatFee(vault.managementFee)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                 </CardHeader>
                   
                   <CardContent className="space-y-3 flex-1 flex flex-col px-3 pb-3">
