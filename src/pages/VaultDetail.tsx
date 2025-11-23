@@ -225,40 +225,10 @@ export function VaultDetail() {
       }
     : null
 
-  if (isLoading) {
-    return (
-      <div className="space-y-8">
-        <Skeleton className="h-12 w-64" />
-        <Card variant="glass-apple">
-          <CardContent className="p-6">
-            <Skeleton className="h-64 w-full" />
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (!enrichedVault) {
-    return (
-      <div className="space-y-8">
-        <Card variant="glass-apple" className="text-center p-8">
-          <p className="text-muted-foreground">Vault not found</p>
-          <Link to="/vaults">
-            <Button variant="glass-apple" className="mt-4">
-              Back to Vaults
-            </Button>
-          </Link>
-        </Card>
-      </div>
-    )
-  }
-
-  const depositTokens = enrichedVault.tokens?.filter((t) => t.isDepositAsset) || []
-  const withdrawTokens = enrichedVault.tokens?.filter((t) => t.isWithdrawAsset) || []
-
+  // IMPORTANT: All hooks must be called before any early returns
   // Read balances for all supported tokens using viem multicall
   const { address: userAddress, isConnected } = useAccount()
-  const supportedTokens = enrichedVault.tokens || []
+  const supportedTokens = enrichedVault?.tokens || []
   const [tokenBalances, setTokenBalances] = useState<Map<string, { balance: bigint; formatted: string }>>(new Map())
   const [isLoadingBalances, setIsLoadingBalances] = useState(false)
 
@@ -388,6 +358,37 @@ export function VaultDetail() {
 
     fetchBalances()
   }, [supportedTokens, isConnected, userAddress, enrichedVault?.chainId])
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <Skeleton className="h-12 w-64" />
+        <Card variant="glass-apple">
+          <CardContent className="p-6">
+            <Skeleton className="h-64 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!enrichedVault) {
+    return (
+      <div className="space-y-8">
+        <Card variant="glass-apple" className="text-center p-8">
+          <p className="text-muted-foreground">Vault not found</p>
+          <Link to="/vaults">
+            <Button variant="glass-apple" className="mt-4">
+              Back to Vaults
+            </Button>
+          </Link>
+        </Card>
+      </div>
+    )
+  }
+
+  const depositTokens = enrichedVault.tokens?.filter((t) => t.isDepositAsset) || []
+  const withdrawTokens = enrichedVault.tokens?.filter((t) => t.isWithdrawAsset) || []
 
   return (
     <div className="space-y-8">
