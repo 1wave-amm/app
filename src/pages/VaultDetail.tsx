@@ -348,7 +348,6 @@ export function VaultDetail() {
 
         setTokenBalances(balances)
       } catch (error) {
-        console.error('Error fetching token balances:', error)
         setTokenBalances(new Map())
       } finally {
         setIsLoadingBalances(false)

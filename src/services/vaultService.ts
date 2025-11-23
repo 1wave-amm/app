@@ -282,8 +282,6 @@ async function fetchVaultsFromSubgraph(vaultAddresses: string[]): Promise<Map<st
  */
 async function fetchAquaPairs(): Promise<AquaPair[]> {
   try {
-    console.log('[VaultService] Fetching aquaPairs from subgraph:', SUBGRAPH_URL)
-    
     // Use pagination to fetch all pairs (subgraph default limit is usually 100)
     // Fetch in batches of 1000 to ensure we get all pairs
     const query = `
@@ -309,24 +307,19 @@ async function fetchAquaPairs(): Promise<AquaPair[]> {
     })
 
     if (!response.ok) {
-      console.error('[VaultService] Subgraph HTTP error:', response.status, response.statusText)
       throw new Error(`Subgraph HTTP error! status: ${response.status}`)
     }
 
     const data = await response.json()
-    console.log('[VaultService] Subgraph response:', data)
 
     if (data.errors) {
-      console.error('[VaultService] Subgraph errors:', data.errors)
       return []
     }
 
     const pairs = data.data?.aquaPairs || []
-    console.log(`[VaultService] Found ${pairs.length} aquaPairs`)
 
     return pairs
   } catch (error) {
-    console.error('[VaultService] Error fetching aquaPairs:', error)
     return []
   }
 }
@@ -432,11 +425,9 @@ function normalizeVaultAddress(vault: ProVaultResponse): string {
  * 2. Stats API (metrics and analytics)
  */
 export async function fetchAggregatedVaults(): Promise<AggregatedVault[]> {
-  console.log('[VaultService] fetchAggregatedVaults started')
-  console.log('[VaultService] STATS_API_BASE_URL:', STATS_API_BASE_URL)
-  console.log('[VaultService] SUBGRAPH_URL:', SUBGRAPH_URL)
-  
   // Fetch subgraph pairs first - this determines which vaults we show
+  const startTime = performance.now()
+  
   const [aquaPairs, proVaults, availableTokens, strategies] = await Promise.all([
     fetchAquaPairs(),
     fetchProVaults(),
@@ -444,12 +435,7 @@ export async function fetchAggregatedVaults(): Promise<AggregatedVault[]> {
     fetchStrategies(),
   ])
   
-  console.log('[VaultService] Fetched data:', {
-    aquaPairsCount: aquaPairs.length,
-    proVaultsCount: proVaults.length,
-    availableTokensCount: availableTokens.length,
-    strategiesCount: strategies.length,
-  })
+  const fetchTime = performance.now() - startTime
 
   // Extract unique vault addresses from subgraph pairs
   // Store both lowercase (for matching) and original (for display)
@@ -874,20 +860,7 @@ export async function fetchAggregatedVaults(): Promise<AggregatedVault[]> {
   })
 
   const result = Array.from(vaultMap.values())
-  console.log(`[VaultService] Returning ${result.length} vaults`)
-  
-  // Log first vault for debugging if any exists
-  if (result.length > 0) {
-    console.log('[VaultService] First vault:', result[0])
-  } else {
-    console.warn('[VaultService] No vaults found!')
-    console.warn('[VaultService] Debug info:', {
-      vaultAddressesFromSubgraph: Array.from(vaultAddressesFromSubgraph),
-      aquaPairsCount: aquaPairs.length,
-      proVaultsCount: proVaults.length,
-      filteredProVaultsCount: filteredProVaults.length,
-    })
-  }
+  const processingTime = performance.now() - startTime
 
   return result
 }

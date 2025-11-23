@@ -6,7 +6,7 @@ import { getBaseRpcUrl } from '@/lib/constants/rpc';
 // Configurazione delle chain supportate - solo BASE
 export const chains = [base] as const;
 
-// Get RPC URL (Alchemy if available, otherwise public)
+// Get RPC URL (ALWAYS Alchemy - required)
 const baseRpcUrl = getBaseRpcUrl();
 
 // Configurazione di Wagmi e RainbowKit
@@ -17,9 +17,13 @@ export const config = getDefaultConfig({
   ssr: false, // Non usiamo SSR con Vite
   transports: {
     [base.id]: http(baseRpcUrl, {
-      batch: true,
-      // Increase timeout for better reliability
-      timeout: 30_000,
+      batch: {
+        multicall: true,
+      },
+      // Configurazione ottimizzata per Alchemy
+      timeout: 30_000, // 30 secondi
+      retryCount: 3, // Riprova fino a 3 volte
+      retryDelay: 1000, // Attendi 1 secondo tra i retry
     }),
   },
 });

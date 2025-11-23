@@ -80,26 +80,13 @@ export function Vaults() {
   const [myBalance, setMyBalance] = useState(false)
   const { chainId = 8453, address, isConnected } = useAccount()
 
+
   const { data: vaults, isLoading, error } = useQuery<AggregatedVault[]>({
     queryKey: ["vaults"],
-    queryFn: async () => {
-      console.log('[Vaults Page] Starting to fetch vaults...')
-      const result = await fetchAggregatedVaults()
-      console.log(`[Vaults Page] Received ${result.length} vaults`)
-      return result
-    },
+    queryFn: fetchAggregatedVaults,
     retry: 2,
   })
   
-  // Log when vaults data changes
-  useEffect(() => {
-    if (vaults) {
-      console.log('[Vaults Page] Vaults data updated:', {
-        count: vaults.length,
-        vaults: vaults.map(v => ({ address: v.address, name: v.name, aquaPairsCount: v.aquaPairs?.length || 0 }))
-      })
-    }
-  }, [vaults])
 
   // Get whitelisted tokens with logos from FactorTokenlist
   const whitelistedTokensMap = useMemo(() => {

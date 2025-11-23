@@ -39,6 +39,7 @@ export function useAquaSwap({
     approve: 'idle' as 'idle' | 'loading' | 'success' | 'error',
     swap: 'idle' as 'idle' | 'loading' | 'success' | 'error',
   })
+  const [transactionHash, setTransactionHash] = useState<string | null>(null)
 
   // Parse amountIn to BigInt
   const amountInBN = amountIn && !isNaN(parseFloat(amountIn)) && parseFloat(amountIn) > 0
@@ -137,6 +138,7 @@ export function useAquaSwap({
         throw new Error('Swap transaction failed')
       }
 
+      setTransactionHash(swapHash)
       setSteps({ approve: 'success', swap: 'success' })
       onSuccess?.()
     } catch (error: any) {
@@ -150,6 +152,11 @@ export function useAquaSwap({
     }
   }
 
+  const reset = () => {
+    setSteps({ approve: 'idle', swap: 'idle' })
+    setTransactionHash(null)
+  }
+
   return {
     handleSwap,
     isLoading,
@@ -157,6 +164,8 @@ export function useAquaSwap({
     needsApproval,
     amountOutMin,
     currentAllowance: currentAllowance as bigint | undefined,
+    transactionHash,
+    reset,
   }
 }
 
