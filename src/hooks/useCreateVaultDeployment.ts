@@ -83,11 +83,9 @@ export function useCreateVaultDeployment(params: VaultDeploymentParams) {
       const CHAINLINK_ACCOUNTING_ADAPTER = getAddress('0xE06d1274fFA08bA9965D6BE89afea04B811260F4')
       const denominatorAccountingAdapter = CHAINLINK_ACCOUNTING_ADAPTER
 
-      // Prepare initial deposit (0.0016 units of the token, converted to smallest unit)
-      // For example: 0.0016 USDC (6 decimals) = 1600
-      // For example: 0.0016 WETH (18 decimals) = 1600000000000000
+      // Prepare initial deposit (0 units - no initial deposit required)
       // The SDK expects the value in smallest units (wei) as a string
-      const initialDepositAmount = '0.0016' // Use string directly to avoid precision issues
+      const initialDepositAmount = '0' // No initial deposit required
       const tokenDecimals = denominatorToken.decimals || 18
       const initialDeposit = parseUnits(
         initialDepositAmount,
