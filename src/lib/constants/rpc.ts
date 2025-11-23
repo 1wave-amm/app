@@ -10,9 +10,12 @@ export const BASE_CHAIN_ID = base.id // 8453
 export const getBaseRpcUrl = (): string => {
   const apiKey = import.meta.env.VITE_ALCHEMY_API_KEY || ''
   if (apiKey) {
-    return `https://base-mainnet.g.alchemy.com/v2/${apiKey}`
+    const url = `https://base-mainnet.g.alchemy.com/v2/${apiKey}`
+    console.log('[RPC] Using Alchemy RPC:', url.replace(apiKey, '***'))
+    return url
   }
   // Fallback to public RPC
+  console.warn('[RPC] No VITE_ALCHEMY_API_KEY found, using public RPC (may have rate limits)')
   return 'https://mainnet.base.org'
 }
 
