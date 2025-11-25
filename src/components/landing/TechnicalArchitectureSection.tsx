@@ -37,7 +37,7 @@ export function TechnicalArchitectureSection() {
                 <p className="text-xs text-muted-foreground">
                   Built with{" "}
                   <a
-                    href="https://factor.studio"
+                    href="https://studio.factor.fi"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-aqua-500 hover:text-aqua-400 underline transition-colors"
