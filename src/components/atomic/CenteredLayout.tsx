@@ -17,3 +17,6 @@ export function CenteredLayout({ children, className, maxWidth = "2xl" }: Center
   )
 }
 
+
+
+

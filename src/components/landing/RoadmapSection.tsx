@@ -18,7 +18,11 @@ import {
   FileCheck, 
   MousePointerClick, 
   Settings,
-  Rocket
+  Rocket,
+  Trophy,
+  Gift,
+  Coins,
+  Activity
 } from "lucide-react"
 
 const roadmapSteps = [
