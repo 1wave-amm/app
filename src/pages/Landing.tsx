@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils"
 type StableToken = {
   symbol: string
   name: string
+  logoUrl: string
   tint: string
 }
 
@@ -31,9 +32,33 @@ const VAULT = {
   tvl: "$18.4M",
   apy: "6.2%",
   tokens: [
-    { symbol: "USDC", name: "USD Coin", tint: "from-blue-400 to-blue-600" },
-    { symbol: "GHO", name: "GHO", tint: "from-emerald-400 to-emerald-600" },
-    { symbol: "USDT", name: "Tether USD", tint: "from-green-400 to-green-600" },
+    {
+      symbol: "USDC",
+      name: "USD Coin",
+      logoUrl:
+        "https://assets.coingecko.com/coins/images/6319/large/USD_Coin_icon.png",
+      tint: "from-blue-400 to-blue-600",
+    },
+    {
+      symbol: "USDS",
+      name: "USDS",
+      logoUrl:
+        "https://assets.coingecko.com/coins/images/34707/large/usds.png",
+      tint: "from-slate-400 to-slate-600",
+    },
+    {
+      symbol: "GHO",
+      name: "GHO",
+      logoUrl:
+        "https://assets.coingecko.com/coins/images/30675/large/GHO.png",
+      tint: "from-emerald-400 to-emerald-600",
+    },
+    {
+      symbol: "USDT",
+      name: "Tether USD",
+      logoUrl: "https://assets.coingecko.com/coins/images/325/large/Tether.png",
+      tint: "from-green-400 to-green-600",
+    },
   ] satisfies StableToken[],
 }
 
@@ -80,8 +105,8 @@ export function Landing() {
                     One stable vault with a {sharePriceLabel} share price
                   </h1>
                   <p className="text-base sm:text-lg text-muted-foreground max-w-3xl mx-auto">
-                    A single basket vault holding USDC, GHO, and USDT. Every $1
-                    deposited mints 1 share. Withdraw at the same 1:1 price.
+                    A single basket vault holding USDC, USDS, GHO, and USDT. Every
+                    $1 deposited mints 1 share. Withdraw at the same 1:1 price.
                   </p>
                 </div>
                 <div className="flex flex-wrap justify-center gap-3">
@@ -127,12 +152,22 @@ export function Landing() {
                             <div
                               key={token.symbol}
                               className={cn(
-                                "h-10 w-10 rounded-full bg-gradient-to-br text-white flex items-center justify-center text-[10px] font-bold tracking-wide border border-white/60",
+                                "h-10 w-10 rounded-full bg-gradient-to-br text-white flex items-center justify-center text-[10px] font-bold tracking-wide border border-white/60 overflow-hidden relative",
                                 token.tint
                               )}
                               title={token.name}
                             >
-                              {token.symbol}
+                              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/90">
+                                {token.symbol}
+                              </span>
+                              <img
+                                src={token.logoUrl}
+                                alt={`${token.symbol} logo`}
+                                className="relative z-10 h-full w-full object-cover"
+                                onError={(event) => {
+                                  event.currentTarget.style.display = "none"
+                                }}
+                              />
                             </div>
                           ))}
                         </div>
@@ -164,7 +199,24 @@ export function Landing() {
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {VAULT.tokens.map((token) => (
-                            <Badge key={token.symbol} variant="secondary">
+                            <Badge
+                              key={token.symbol}
+                              variant="secondary"
+                              className="flex items-center gap-2"
+                            >
+                              <span className="relative h-4 w-4 rounded-full overflow-hidden bg-white/80 border border-white/70">
+                                <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-muted-foreground">
+                                  {token.symbol}
+                                </span>
+                                <img
+                                  src={token.logoUrl}
+                                  alt={`${token.symbol} logo`}
+                                  className="relative z-10 h-full w-full object-cover"
+                                  onError={(event) => {
+                                    event.currentTarget.style.display = "none"
+                                  }}
+                                />
+                              </span>
                               {token.symbol}
                             </Badge>
                           ))}
