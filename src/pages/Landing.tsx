@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { Header } from "@/components/layout/Header"
 import { MobileFooterNav } from "@/components/layout/MobileFooterNav"
 import { AnimatedWaveBackground } from "@/components/landing/AnimatedWaveBackground"
@@ -17,37 +17,25 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
-type VaultDefinition = {
-  id: string
+type StableToken = {
   symbol: string
   name: string
-  description: string
   tint: string
 }
 
-const VAULTS: VaultDefinition[] = [
-  {
-    id: "usdc",
-    symbol: "USDC",
-    name: "USD Coin",
-    description: "Regulated stablecoin vault with 1:1 shares.",
-    tint: "from-blue-400 to-blue-600",
-  },
-  {
-    id: "gho",
-    symbol: "GHO",
-    name: "GHO",
-    description: "Overcollateralized stablecoin vault with 1:1 shares.",
-    tint: "from-emerald-400 to-emerald-600",
-  },
-  {
-    id: "usdt",
-    symbol: "USDT",
-    name: "Tether USD",
-    description: "Liquidity-first stablecoin vault with 1:1 shares.",
-    tint: "from-green-400 to-green-600",
-  },
-]
+const VAULT = {
+  id: "stable-basket",
+  name: "Stable Basket Vault",
+  description:
+    "Single vault holding multiple stablecoins with a fixed 1:1 share price.",
+  tvl: "$18.4M",
+  apy: "6.2%",
+  tokens: [
+    { symbol: "USDC", name: "USD Coin", tint: "from-blue-400 to-blue-600" },
+    { symbol: "GHO", name: "GHO", tint: "from-emerald-400 to-emerald-600" },
+    { symbol: "USDT", name: "Tether USD", tint: "from-green-400 to-green-600" },
+  ] satisfies StableToken[],
+}
 
 const SHARE_PRICE = 1
 
@@ -61,19 +49,14 @@ const formatShares = (value: string) => {
 }
 
 export function Landing() {
-  const [selectedVaultId, setSelectedVaultId] = useState<string | null>(null)
+  const [isAdopted, setIsAdopted] = useState(false)
   const [depositAmount, setDepositAmount] = useState("")
   const [withdrawAmount, setWithdrawAmount] = useState("")
-
-  const selectedVault = useMemo(
-    () => VAULTS.find((vault) => vault.id === selectedVaultId) ?? null,
-    [selectedVaultId]
-  )
 
   useEffect(() => {
     setDepositAmount("")
     setWithdrawAmount("")
-  }, [selectedVaultId])
+  }, [isAdopted])
 
   const sharePriceLabel = `$${SHARE_PRICE.toFixed(2)}`
 
@@ -94,17 +77,17 @@ export function Landing() {
                 </Badge>
                 <div className="space-y-4">
                   <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight">
-                    Stablecoin vaults with a {sharePriceLabel} share price
+                    One stable vault with a {sharePriceLabel} share price
                   </h1>
                   <p className="text-base sm:text-lg text-muted-foreground max-w-3xl mx-auto">
-                    Simple mock vaults for USDC, GHO, and USDT. Every $1 deposited
-                    mints 1 share. Withdraw at the same 1:1 price.
+                    A single basket vault holding USDC, GHO, and USDT. Every $1
+                    deposited mints 1 share. Withdraw at the same 1:1 price.
                   </p>
                 </div>
                 <div className="flex flex-wrap justify-center gap-3">
-                  {VAULTS.map((vault) => (
-                    <Badge key={vault.id} variant="secondary" className="text-xs">
-                      {vault.symbol}
+                  {VAULT.tokens.map((token) => (
+                    <Badge key={token.symbol} variant="secondary" className="text-xs">
+                      {token.symbol}
                     </Badge>
                   ))}
                   <Badge variant="outline" className="text-xs">
@@ -116,74 +99,86 @@ export function Landing() {
               <section className="space-y-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-2xl font-semibold">Vault list</h2>
+                    <h2 className="text-2xl font-semibold">Vault</h2>
                     <p className="text-sm text-muted-foreground">
-                      Each vault keeps a fixed $1.00 share price.
+                      One basket vault, fixed $1.00 share price.
                     </p>
                   </div>
                   <Badge variant="secondary">Share price {sharePriceLabel}</Badge>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                  <div className="space-y-5">
-                    {VAULTS.map((vault) => {
-                      const isSelected = selectedVaultId === vault.id
-                      return (
-                        <Card
-                          key={vault.id}
-                          variant="glass-apple"
-                          className={cn(
-                            "min-h-[260px] transition-all duration-300",
-                            isSelected
-                              ? "ring-2 ring-aqua-500 shadow-lg"
-                              : "hover:shadow-md"
-                          )}
-                        >
-                          <CardHeader className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <div
-                                className={cn(
-                                  "h-12 w-12 rounded-full bg-gradient-to-br text-white flex items-center justify-center text-xs font-bold tracking-wide",
-                                  vault.tint
-                                )}
-                              >
-                                {vault.symbol}
-                              </div>
-                              {isSelected && (
-                                <Badge variant="secondary">Selected</Badge>
+                  <Card
+                    variant="glass-apple"
+                    className={cn(
+                      "min-h-[260px] transition-all duration-300",
+                      isAdopted ? "ring-2 ring-aqua-500 shadow-lg" : "hover:shadow-md"
+                    )}
+                  >
+                    <CardHeader className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex -space-x-2">
+                          {VAULT.tokens.map((token) => (
+                            <div
+                              key={token.symbol}
+                              className={cn(
+                                "h-10 w-10 rounded-full bg-gradient-to-br text-white flex items-center justify-center text-[10px] font-bold tracking-wide border border-white/60",
+                                token.tint
                               )}
-                            </div>
-                            <div className="space-y-1">
-                              <CardTitle className="text-lg">
-                                {vault.symbol} Vault
-                              </CardTitle>
-                              <CardDescription>{vault.description}</CardDescription>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-muted-foreground">
-                                Share price
-                              </span>
-                              <span className="font-semibold">{sharePriceLabel}</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              1 USD deposit = 1 share minted.
-                            </p>
-                          </CardContent>
-                          <CardFooter>
-                            <Button
-                              variant="glass-apple"
-                              className="w-full"
-                              onClick={() => setSelectedVaultId(vault.id)}
+                              title={token.name}
                             >
-                              Adopt it
-                            </Button>
-                          </CardFooter>
-                        </Card>
-                      )
-                    })}
-                  </div>
+                              {token.symbol}
+                            </div>
+                          ))}
+                        </div>
+                        {isAdopted && <Badge variant="secondary">Selected</Badge>}
+                      </div>
+                      <div className="space-y-1">
+                        <CardTitle className="text-lg">{VAULT.name}</CardTitle>
+                        <CardDescription>{VAULT.description}</CardDescription>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Share price</span>
+                        <span className="font-semibold">{sharePriceLabel}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="rounded-2xl border border-border/40 p-3">
+                          <p className="text-xs text-muted-foreground">Mock TVL</p>
+                          <p className="text-base font-semibold">{VAULT.tvl}</p>
+                        </div>
+                        <div className="rounded-2xl border border-border/40 p-3">
+                          <p className="text-xs text-muted-foreground">Mock APY</p>
+                          <p className="text-base font-semibold">{VAULT.apy}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                          Stablecoins in vault
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {VAULT.tokens.map((token) => (
+                            <Badge key={token.symbol} variant="secondary">
+                              {token.symbol}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        1 USD deposit = 1 share minted.
+                      </p>
+                    </CardContent>
+                    <CardFooter>
+                      <Button
+                        variant="glass-apple"
+                        className="w-full"
+                        onClick={() => setIsAdopted(true)}
+                      >
+                        Adopt it
+                      </Button>
+                    </CardFooter>
+                  </Card>
 
                   <Card
                     variant="glass-apple"
@@ -192,8 +187,8 @@ export function Landing() {
                     <CardHeader className="space-y-3">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-lg">Deposit / Withdraw</CardTitle>
-                        <Badge variant={selectedVault ? "secondary" : "outline"}>
-                          {selectedVault ? selectedVault.symbol : "No vault"}
+                        <Badge variant={isAdopted ? "secondary" : "outline"}>
+                          {isAdopted ? "Stable Basket" : "No vault"}
                         </Badge>
                       </div>
                       <CardDescription>
@@ -202,7 +197,7 @@ export function Landing() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {selectedVault ? (
+                      {isAdopted ? (
                         <Tabs defaultValue="deposit" className="space-y-4">
                           <TabsList className="grid w-full grid-cols-2">
                             <TabsTrigger value="deposit">Deposit</TabsTrigger>
@@ -287,7 +282,7 @@ export function Landing() {
                         </Tabs>
                       ) : (
                         <div className="rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground space-y-2">
-                          <p>Select a vault to start.</p>
+                          <p>Select the vault to start.</p>
                           <p>
                             Click "Adopt it" on the left to open the deposit and
                             withdraw card.
