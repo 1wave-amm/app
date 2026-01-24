@@ -107,7 +107,12 @@ export function Landing() {
                   <Badge variant="secondary">Share price {sharePriceLabel}</Badge>
                 </div>
 
-                <div className="flex flex-col lg:flex-row gap-6 items-start justify-center">
+                <div
+                  className={cn(
+                    "flex flex-col lg:flex-row gap-6 justify-center",
+                    isAdopted ? "items-start" : "items-center"
+                  )}
+                >
                   <Card
                     variant="glass-apple"
                     className={cn(
