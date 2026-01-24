@@ -107,11 +107,11 @@ export function Landing() {
                   <Badge variant="secondary">Share price {sharePriceLabel}</Badge>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                <div className="flex flex-col lg:flex-row gap-6 items-start justify-center">
                   <Card
                     variant="glass-apple"
                     className={cn(
-                      "min-h-[260px] transition-all duration-300",
+                      "w-[360px] h-[360px] transition-all duration-300 flex flex-col",
                       isAdopted ? "ring-2 ring-aqua-500 shadow-lg" : "hover:shadow-md"
                     )}
                   >
@@ -138,7 +138,7 @@ export function Landing() {
                         <CardDescription>{VAULT.description}</CardDescription>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-4 flex-1">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Share price</span>
                         <span className="font-semibold">{sharePriceLabel}</span>
@@ -169,7 +169,7 @@ export function Landing() {
                         1 USD deposit = 1 share minted.
                       </p>
                     </CardContent>
-                    <CardFooter>
+                    <CardFooter className="mt-auto">
                       <Button
                         variant="glass-apple"
                         className="w-full"
@@ -180,24 +180,22 @@ export function Landing() {
                     </CardFooter>
                   </Card>
 
-                  <Card
-                    variant="glass-apple"
-                    className="min-h-[260px] transition-all duration-300"
-                  >
-                    <CardHeader className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">Deposit / Withdraw</CardTitle>
-                        <Badge variant={isAdopted ? "secondary" : "outline"}>
-                          {isAdopted ? "Stable Basket" : "No vault"}
-                        </Badge>
-                      </div>
-                      <CardDescription>
-                        This vault keeps a {sharePriceLabel} share price. $1 = 1
-                        share for every deposit.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {isAdopted ? (
+                  {isAdopted && (
+                    <Card
+                      variant="glass-apple"
+                      className="w-[360px] h-[360px] transition-all duration-300 flex flex-col"
+                    >
+                      <CardHeader className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">Deposit / Withdraw</CardTitle>
+                          <Badge variant="secondary">Stable Basket</Badge>
+                        </div>
+                        <CardDescription>
+                          This vault keeps a {sharePriceLabel} share price. $1 = 1
+                          share for every deposit.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex-1">
                         <Tabs defaultValue="deposit" className="space-y-4">
                           <TabsList className="grid w-full grid-cols-2">
                             <TabsTrigger value="deposit">Deposit</TabsTrigger>
@@ -280,20 +278,12 @@ export function Landing() {
                             </div>
                           </TabsContent>
                         </Tabs>
-                      ) : (
-                        <div className="rounded-2xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground space-y-2">
-                          <p>Select the vault to start.</p>
-                          <p>
-                            Click "Adopt it" on the left to open the deposit and
-                            withdraw card.
-                          </p>
-                        </div>
-                      )}
-                    </CardContent>
-                    <CardFooter className="text-xs text-muted-foreground">
-                      Mock interface. No transactions are executed.
-                    </CardFooter>
-                  </Card>
+                      </CardContent>
+                      <CardFooter className="text-xs text-muted-foreground mt-auto">
+                        Mock interface. No transactions are executed.
+                      </CardFooter>
+                    </Card>
+                  )}
                 </div>
               </section>
             </div>
