@@ -1,156 +1,414 @@
-import { useEffect, useState } from "react"
-import { Header } from "@/components/layout/Header"
-import { MobileFooterNav } from "@/components/layout/MobileFooterNav"
-import { HeroSection } from "@/components/landing/HeroSection"
-import { ImpermanentLossSection } from "@/components/landing/ImpermanentLossSection"
-import { FeaturesChips } from "@/components/landing/FeaturesChips"
-import { BasketVaultsSection } from "@/components/landing/BasketVaultsSection"
-import { TechnicalArchitectureSection } from "@/components/landing/TechnicalArchitectureSection"
-import { FactorSDKSection } from "@/components/landing/FactorSDKSection"
-import { RebalancingSection } from "@/components/landing/RebalancingSection"
-import { MiniDEXSection } from "@/components/landing/MiniDEXSection"
-import { CTASection } from "@/components/landing/CTASection"
-import { UnifiedSwapInterfaceSection } from "@/components/landing/UnifiedSwapInterfaceSection"
-import { RoadmapSection } from "@/components/landing/RoadmapSection"
-import { ThanksSection } from "@/components/landing/ThanksSection"
-import { AnimatedWaveBackground } from "@/components/landing/AnimatedWaveBackground"
+import { useMemo, useState } from "react"
+import { Calendar, CheckCircle2, MapPin, PartyPopper, AlertTriangle } from "lucide-react"
+import { Container } from "@/components/atomic/Container"
 
-// Roadmap steps
-const ROADMAP_STEPS = [
-  'roadmap-step-1',
-  'roadmap-step-2',
-  'roadmap-step-3',
-  'roadmap-step-4',
-  'roadmap-step-5',
-  'roadmap-step-6',
-  'roadmap-step-7',
-  'roadmap-step-8',
-  'roadmap-step-9',
-  'roadmap-step-10',
-  'roadmap-step-11',
-  'roadmap-step-12',
-  'roadmap-step-13',
-  'roadmap-step-14',
-  'roadmap-step-15',
-  'roadmap-step-16',
-  'roadmap-step-17',
-  'roadmap-step-18',
-  'roadmap-step-19',
-  'roadmap-step-20',
-  'roadmap-step-21',
-  'roadmap-step-22',
-  'roadmap-step-23',
+type EventInfo = {
+  title: string
+  subtitle: string
+  date: string
+  location: string
+  cta: string
+}
+
+type ConfettiPiece = {
+  id: string
+  left: number
+  size: number
+  rotation: number
+  delay: number
+  duration: number
+  color: string
+}
+
+const EVENTS: EventInfo[] = [
+  {
+    title: "Stable Summit IV: New York",
+    subtitle: "Our most institutional event ever",
+    date: "2026-06-04",
+    location: "New York, USA",
+    cta: "Applications Open Soon",
+  },
+  {
+    title: "Stablecoin Summit Singapore 2026",
+    subtitle: "Where builders and institutions meet",
+    date: "2026-10-08",
+    location: "Singapore",
+    cta: "Applications Open Soon",
+  },
+  {
+    title: "Stable Summit IV: DEVCON",
+    subtitle: "Stablecoins at the heart of the ecosystem",
+    date: "2026-11-04",
+    location: "Mumbai, India",
+    cta: "Applications Open Soon",
+  },
 ]
 
-// Sezioni navigabili in ordine
-const SECTIONS = [
-  'hero-section',
-  'cta-section',
-  'impermanent-loss-section',
-  'basket-vaults-section',
-  'featured-vault-section',
-  'architecture-section',
-  'factor-sdk-section',
-  'rebalancing-section',
-  'unified-swap-section',
-  'roadmap-section', // Badge "Future Brainstorming Ideas / Roadmap"
-  ...ROADMAP_STEPS,
-  'thanks-section',
-]
+const CONFETTI_COLORS = ["#fbbf24", "#34d399", "#f97316", "#60a5fa", "#f472b6"]
+
+const createConfettiPieces = (count: number) =>
+  Array.from({ length: count }, (_, index) => ({
+    id: `${Date.now()}-${index}`,
+    left: Math.random() * 100,
+    size: 6 + Math.random() * 8,
+    rotation: Math.random() * 360,
+    delay: Math.random() * 0.3,
+    duration: 1.8 + Math.random() * 1.4,
+    color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
+  }))
+
+const formatShares = (value: number) => (value % 1 === 0 ? value.toFixed(0) : value.toFixed(2))
 
 export function Landing() {
-  const [, setCurrentSectionIndex] = useState(0)
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] text-white relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-40 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(250,204,21,0.25),transparent_60%)] blur-3xl" />
+        <div className="absolute top-0 left-0 h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(74,222,128,0.2),transparent_70%)] blur-3xl" />
+        <div className="absolute -bottom-48 right-0 h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle,rgba(249,115,22,0.2),transparent_70%)] blur-3xl" />
+      </div>
+      <SummitHeader />
+      <main className="relative z-10 pt-8 pb-20">
+        <SummitHero />
+        <SummitEvents />
+        <TicketSimulatorSection />
+        <AboutSection />
+      </main>
+    </div>
+  )
+}
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignora se l'utente sta digitando in un input/textarea
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
-        return
-      }
+function SummitHeader() {
+  return (
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-xl">
+      <Container maxWidth="full" className="flex h-16 items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-black text-xs font-semibold">
+            S
+          </span>
+          <span className="text-sm font-semibold tracking-[0.08em] uppercase text-white">
+            Stable Summit
+          </span>
+        </div>
+        <div className="h-6 w-6 rounded-full bg-white/90 shadow-[0_0_12px_rgba(255,255,255,0.45)]" />
+      </Container>
+    </header>
+  )
+}
 
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-        e.preventDefault()
-        setCurrentSectionIndex((prev) => {
-          const nextIndex = Math.min(prev + 1, SECTIONS.length - 1)
-          scrollToSection(nextIndex)
-          return nextIndex
-        })
-      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-        e.preventDefault()
-        setCurrentSectionIndex((prev) => {
-          const prevIndex = Math.max(prev - 1, 0)
-          scrollToSection(prevIndex)
-          return prevIndex
-        })
-      }
+function SummitHero() {
+  return (
+    <section className="pt-8 sm:pt-12">
+      <Container maxWidth="full" className="max-w-6xl">
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-2xl space-y-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-white/60">Stable Summit</p>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif leading-tight">
+              The Global Stablecoin Conference
+            </h1>
+            <p className="text-sm sm:text-base text-white/65 leading-relaxed">
+              Stable Summit is the world&apos;s one-stop event to meet the entire stablecoin ecosystem.
+              From anon supercoders to central bankers, and all the stablecoin issuers in between, we
+              have attracted thousands of leaders in stablecoins and DeFi across our seven editions
+              since 2023.
+            </p>
+          </div>
+          <SummitEmblem />
+        </div>
+      </Container>
+    </section>
+  )
+}
+
+function SummitEvents() {
+  return (
+    <section className="py-10 sm:py-12">
+      <Container maxWidth="full" className="max-w-4xl">
+        <div className="space-y-4">
+          {EVENTS.map((event) => (
+            <EventCard key={event.title} event={event} />
+          ))}
+        </div>
+      </Container>
+    </section>
+  )
+}
+
+function EventCard({ event }: { event: EventInfo }) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.08] via-white/[0.04] to-white/[0.02] p-5 sm:p-6 shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.18),transparent_60%)] opacity-40" />
+      <div className="relative space-y-4">
+        <div>
+          <h3 className="text-lg sm:text-xl font-semibold text-white">{event.title}</h3>
+          <p className="text-sm text-white/60">{event.subtitle}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-4 text-sm text-white/70">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            <span>{event.date}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            <span>{event.location}</span>
+          </div>
+        </div>
+        <div className="pt-2">
+          <span className="inline-flex items-center rounded-full bg-gradient-to-r from-lime-300 via-lime-200 to-orange-400 px-4 py-1.5 text-xs font-semibold text-black shadow-[0_0_18px_rgba(250,204,21,0.25)]">
+            {event.cta}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TicketSimulatorSection() {
+  const ticketPrice = 25
+  const [sharesBalance, setSharesBalance] = useState(0)
+  const [depositAmount, setDepositAmount] = useState("")
+  const [ticketCode, setTicketCode] = useState("SS-2026-0001")
+  const [purchaseCount, setPurchaseCount] = useState(0)
+  const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const [confettiPieces, setConfettiPieces] = useState<ConfettiPiece[]>([])
+
+  const canBuy = sharesBalance >= ticketPrice
+
+  const quickDeposits = useMemo(() => [25, 50, 100], [])
+
+  const triggerConfetti = () => {
+    const pieces = createConfettiPieces(28)
+    setConfettiPieces(pieces)
+    window.setTimeout(() => setConfettiPieces([]), 2600)
+  }
+
+  const handleDeposit = (amount?: number) => {
+    const value = typeof amount === "number" ? amount : Number(depositAmount)
+    if (!Number.isFinite(value) || value <= 0) {
+      setStatusMessage({ type: "error", text: "Enter a valid deposit amount." })
+      return
     }
+    setSharesBalance((prev) => Number((prev + value).toFixed(2)))
+    setDepositAmount("")
+    setStatusMessage(null)
+  }
 
-    const scrollToSection = (index: number) => {
-      const sectionId = SECTIONS[index]
-      const element = document.getElementById(sectionId)
-      if (element) {
-        // Se è un passo della roadmap, scrolla orizzontalmente
-        if (sectionId.startsWith('roadmap-step-')) {
-          const roadmapContainer = document.querySelector('.roadmap-carousel')
-          if (roadmapContainer) {
-            const containerRect = roadmapContainer.getBoundingClientRect()
-            const elementRect = element.getBoundingClientRect()
-            const scrollLeft = roadmapContainer.scrollLeft + (elementRect.left - containerRect.left) - (containerRect.width / 2) + (elementRect.width / 2)
-            roadmapContainer.scrollTo({ left: scrollLeft, behavior: 'smooth' })
-          }
-          // Scroll verticale per portare la sezione in vista
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        } else {
-          // Scroll normale per altre sezioni
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }
-      }
+  const handlePurchase = () => {
+    if (!canBuy) {
+      setStatusMessage({ type: "error", text: "Not enough shares to buy the ticket." })
+      return
     }
-
-    window.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [])
+    const nextCount = purchaseCount + 1
+    setPurchaseCount(nextCount)
+    setTicketCode(`SS-2026-${String(nextCount).padStart(4, "0")}`)
+    setSharesBalance((prev) => Number((prev - ticketPrice).toFixed(2)))
+    setStatusMessage({
+      type: "success",
+      text: "Ticket confirmed. See you at Stable Summit.",
+    })
+    triggerConfetti()
+  }
 
   return (
-    <div className="min-h-screen relative overflow-hidden pb-20 md:pb-0">
-      <AnimatedWaveBackground />
-      <Header />
-      <div className="relative z-10">
-        <div id="hero-section">
-          <HeroSection />
+    <section className="py-10 sm:py-12">
+      <Container maxWidth="full" className="max-w-5xl">
+        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.55)]">
+          {confettiPieces.length > 0 && (
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              {confettiPieces.map((piece) => (
+                <span
+                  key={piece.id}
+                  className="confetti-piece"
+                  style={{
+                    left: `${piece.left}%`,
+                    width: `${piece.size}px`,
+                    height: `${piece.size * 0.6}px`,
+                    backgroundColor: piece.color,
+                    transform: `rotate(${piece.rotation}deg)`,
+                    animationDelay: `${piece.delay}s`,
+                    animationDuration: `${piece.duration}s`,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-center">
+            <div className="flex-1 space-y-6">
+              <div className="space-y-3">
+                <p className="text-xs uppercase tracking-[0.3em] text-white/60">Ticket Simulator</p>
+                <h2 className="text-2xl sm:text-3xl font-semibold">Buy a ticket with vault shares</h2>
+                <p className="text-sm text-white/65">
+                  Deposit shares to your vault balance. Each share is worth $1, and the ticket costs
+                  $25. After purchase, we show your 3D ticket with a confetti celebration.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-white/80">Deposit shares</label>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={depositAmount}
+                    onChange={(event) => setDepositAmount(event.target.value)}
+                    placeholder="Enter shares amount"
+                    className="h-11 w-full rounded-2xl border border-white/15 bg-black/40 px-4 text-sm text-white placeholder:text-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleDeposit()}
+                    className="h-11 rounded-2xl bg-white px-5 text-sm font-semibold text-black transition hover:bg-white/90"
+                  >
+                    Deposit
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {quickDeposits.map((amount) => (
+                    <button
+                      key={amount}
+                      type="button"
+                      onClick={() => handleDeposit(amount)}
+                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80 transition hover:border-white/30 hover:text-white"
+                    >
+                      +{amount}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/40 p-4 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-white/70">Shares balance</span>
+                  <span className="text-white font-semibold">{formatShares(sharesBalance)} SHARES</span>
+                </div>
+                <p className="mt-2 text-xs text-white/60">
+                  1 share = $1. Ticket price: 25 shares ($25).
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={handlePurchase}
+                  disabled={!canBuy}
+                  className={`w-full rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                    canBuy
+                      ? "bg-gradient-to-r from-lime-300 via-lime-200 to-orange-400 text-black shadow-[0_0_24px_rgba(250,204,21,0.3)] hover:opacity-90"
+                      : "bg-white/10 text-white/40 cursor-not-allowed"
+                  }`}
+                >
+                  Buy ticket for 25 shares
+                </button>
+
+                {statusMessage && (
+                  <div
+                    className={`flex items-start gap-2 rounded-2xl border px-4 py-3 text-sm ${
+                      statusMessage.type === "success"
+                        ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-100"
+                        : "border-rose-400/30 bg-rose-500/10 text-rose-100"
+                    }`}
+                  >
+                    {statusMessage.type === "success" ? (
+                      <PartyPopper className="mt-0.5 h-4 w-4" />
+                    ) : (
+                      <AlertTriangle className="mt-0.5 h-4 w-4" />
+                    )}
+                    <span>{statusMessage.text}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex-1">
+              {statusMessage?.type === "success" ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-emerald-200">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Ticket is ready in your wallet.
+                  </div>
+                  <Ticket3D ticketCode={ticketCode} />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/10 bg-black/30 p-6 text-center text-sm text-white/60">
+                  <div className="h-24 w-24 rounded-full border border-white/10 bg-white/5" />
+                  Purchase a ticket to reveal the 3D pass.
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-        <div id="cta-section">
-          <CTASection />
+      </Container>
+    </section>
+  )
+}
+
+function Ticket3D({ ticketCode }: { ticketCode: string }) {
+  return (
+    <div className="relative mx-auto w-full max-w-sm">
+      <div className="ticket-float" style={{ perspective: "1000px" }}>
+        <div
+          className="relative rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-transparent p-5 text-white shadow-[0_20px_60px_rgba(0,0,0,0.55)]"
+          style={{ transform: "rotateX(16deg) rotateY(-18deg)", transformStyle: "preserve-3d" }}
+        >
+          <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.25),transparent_60%)]" />
+          <div className="relative space-y-4">
+            <div className="flex items-center justify-between text-[11px] uppercase text-white/70">
+              <span>Stable Summit Ticket</span>
+              <span>{ticketCode}</span>
+            </div>
+            <div>
+              <div className="text-lg font-semibold">Stable Summit IV: New York</div>
+              <div className="text-sm text-white/70">2026-06-04 • New York, USA</div>
+            </div>
+            <div className="flex items-center justify-between text-xs text-white/70">
+              <span>Entry</span>
+              <span className="rounded-full bg-white/10 px-3 py-1">General Admission</span>
+            </div>
+          </div>
+          <div
+            className="absolute -right-2 top-6 bottom-6 w-2 rounded-full bg-gradient-to-b from-lime-300 to-orange-400 opacity-80"
+            style={{ transform: "translateZ(-18px)" }}
+          />
         </div>
-        <div id="impermanent-loss-section">
-          <ImpermanentLossSection />
-        </div>
-        <FeaturesChips />
-        <div id="basket-vaults-section">
-          <BasketVaultsSection />
-        </div>
-        <div id="architecture-section">
-          <TechnicalArchitectureSection />
-        </div>
-        <div id="factor-sdk-section">
-          <FactorSDKSection />
-        </div>
-        <div id="rebalancing-section">
-          <RebalancingSection />
-        </div>
-        <UnifiedSwapInterfaceSection />
-        <MiniDEXSection />
-        <RoadmapSection />
-        <ThanksSection />
       </div>
-      {/* Mobile Footer Navigation */}
-      <MobileFooterNav />
+      <div className="absolute inset-x-8 -bottom-6 h-6 rounded-full bg-black/70 blur-xl" />
+    </div>
+  )
+}
+
+function AboutSection() {
+  return (
+    <section className="py-12 sm:py-16">
+      <Container maxWidth="full" className="max-w-4xl">
+        <div className="space-y-4 text-center">
+          <h2 className="text-2xl sm:text-3xl font-serif">About Us</h2>
+          <p className="text-sm sm:text-base text-white/65 leading-relaxed">
+            By Stake Capital Group and Party Action People, and presented by Curve Finance, Stable
+            Summit has been gathering leaders in stablecoins almost quarterly since 2023. Our content
+            is curated through hours of one-on-one research with the leading minds in the stablecoin
+            space. Each program is a highlight reel of what leaders in stables are curious about in
+            real time. Our audience consistently features the full spectrum of the stablecoin
+            ecosystem, from DeFi protocols to institutions, from stablecoin issuers to central banks,
+            and every llama in between.
+          </p>
+        </div>
+        <div className="mt-10 flex justify-center">
+          <SummitEmblem muted />
+        </div>
+      </Container>
+    </section>
+  )
+}
+
+function SummitEmblem({ muted = false }: { muted?: boolean }) {
+  return (
+    <div className={`relative flex items-center justify-center ${muted ? "opacity-70" : ""}`}>
+      <div className="relative h-44 w-44">
+        <div className="absolute left-1/2 top-0 h-20 w-20 -translate-x-1/2 rotate-45 rounded-2xl bg-gradient-to-br from-orange-500 via-red-500 to-amber-400 shadow-[0_30px_60px_rgba(234,88,12,0.35)]" />
+        <div className="absolute left-1/2 top-6 h-16 w-16 -translate-x-1/2 rotate-45 rounded-2xl bg-gradient-to-br from-orange-700 via-red-600 to-amber-500 opacity-70" />
+        <div className="absolute left-1/2 top-16 h-24 w-24 -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_30%_30%,#4b4b4b,#111)] shadow-[0_30px_60px_rgba(0,0,0,0.6)]" />
+      </div>
     </div>
   )
 }
