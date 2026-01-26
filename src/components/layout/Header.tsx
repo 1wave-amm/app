@@ -3,13 +3,14 @@ import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme/ThemeToggle"
 import { cn } from "@/lib/utils"
-import logoImage from "@/logo/logo.png"
+import logoImage from "@/logo/android-chrome-192x192.png"
 import { useEffect, useState } from "react"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { useAccount, useSwitchChain } from "wagmi"
 import { useConnectModal } from "@rainbow-me/rainbowkit"
 import { BASE_CHAIN_ID } from "@/lib/constants/rpc"
 import { AlertTriangle } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 export function Header() {
   const location = useLocation()
@@ -86,13 +87,16 @@ export function Header() {
       <header className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-1">
+          <Link to="/" className="flex items-center space-x-2">
             <span className="text-black dark:text-white font-bold h-8 leading-none flex items-center">1</span>
             <img
               src={logoImage}
               alt="Wave Logo"
               className="h-8 w-auto"
             />
+            <Badge variant="outline" className="hidden sm:inline-flex text-[10px] border-amber-300/40 text-amber-200">
+              Demo
+            </Badge>
           </Link>
 
           {/* Navigation - hidden on mobile, shown on desktop */}

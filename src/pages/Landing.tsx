@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react"
 import { Calendar, CheckCircle2, MapPin, PartyPopper, AlertTriangle } from "lucide-react"
 import { Container } from "@/components/atomic/Container"
+import { DemoNotice } from "@/components/common/DemoNotice"
+import { FactorTokenlist } from "@factordao/tokenlist"
 
 type EventInfo = {
   title: string
@@ -59,7 +61,108 @@ const createConfettiPieces = (count: number) =>
 
 const formatShares = (value: number) => (value % 1 === 0 ? value.toFixed(0) : value.toFixed(2))
 
+type DepositMessage = { type: "success" | "error"; text: string } | null
+
+type VaultDepositSectionProps = {
+  depositTokens: { symbol: string; logoUrl?: string }[]
+  selectedToken: string
+  depositAmount: string
+  isAdopted: boolean
+  depositMessage: DepositMessage
+  quickDeposits: number[]
+  onAdopt: () => void
+  onSelectToken: (token: string) => void
+  onDepositAmountChange: (value: string) => void
+  onDeposit: (amount?: number) => void
+}
+
+type SummitHeroProps = VaultDepositSectionProps
+
+type TicketSimulatorSectionProps = {
+  ticketPrice: number
+  sharesBalance: number
+  canBuy: boolean
+  statusMessage: { type: "success" | "error"; text: string } | null
+  confettiPieces: ConfettiPiece[]
+  ticketCode: string
+  onPurchase: () => void
+}
+
 export function Landing() {
+  const ticketPrice = 25
+  const [sharesBalance, setSharesBalance] = useState(0)
+  const [depositAmount, setDepositAmount] = useState("")
+  const [selectedToken, setSelectedToken] = useState("USDC")
+  const [isAdopted, setIsAdopted] = useState(false)
+  const [ticketCode, setTicketCode] = useState("SS-2026-0001")
+  const [purchaseCount, setPurchaseCount] = useState(0)
+  const [depositMessage, setDepositMessage] = useState<DepositMessage>(null)
+  const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const [confettiPieces, setConfettiPieces] = useState<ConfettiPiece[]>([])
+
+  const canBuy = sharesBalance >= ticketPrice
+
+  const depositTokens = useMemo(() => ["USDC", "USDT", "GHO", "USDS", "DAI"], [])
+  const depositTokenMeta = useMemo(() => {
+    try {
+      const tokenlist = new FactorTokenlist(8453 as any)
+      const allTokens = tokenlist.getAllGeneralTokens()
+      return depositTokens.map((symbol) => {
+        const token = allTokens.find(
+          (entry: any) => entry.symbol?.toUpperCase() === symbol.toUpperCase()
+        )
+        return { symbol, logoUrl: token?.logoUrl }
+      })
+    } catch (error) {
+      return depositTokens.map((symbol) => ({ symbol }))
+    }
+  }, [depositTokens])
+  const quickDeposits = useMemo(() => [25, 50, 100], [])
+
+  const triggerConfetti = () => {
+    const pieces = createConfettiPieces(28)
+    setConfettiPieces(pieces)
+    window.setTimeout(() => setConfettiPieces([]), 2600)
+  }
+
+  const handleDeposit = (amount?: number) => {
+    if (!isAdopted) {
+      setDepositMessage({ type: "error", text: "Adopt the vault before depositing." })
+      return
+    }
+    const value = typeof amount === "number" ? amount : Number(depositAmount)
+    if (!Number.isFinite(value) || value <= 0) {
+      setDepositMessage({ type: "error", text: "Enter a valid deposit amount." })
+      return
+    }
+    setSharesBalance((prev) => Number((prev + value).toFixed(2)))
+    setDepositAmount("")
+    setDepositMessage({ type: "success", text: `Deposited ${value} ${selectedToken}.` })
+  }
+
+  const handlePurchase = () => {
+    if (!canBuy) {
+      setStatusMessage({ type: "error", text: "Not enough shares to buy the ticket." })
+      return
+    }
+    const nextCount = purchaseCount + 1
+    setPurchaseCount(nextCount)
+    setTicketCode(`SS-2026-${String(nextCount).padStart(4, "0")}`)
+    setSharesBalance((prev) => Number((prev - ticketPrice).toFixed(2)))
+    setDepositMessage(null)
+    setStatusMessage({
+      type: "success",
+      text: "Ticket confirmed. See you at Stable Summit.",
+    })
+    triggerConfetti()
+  }
+
+  const handleAdopt = () => {
+    if (isAdopted) return
+    setIsAdopted(true)
+    setDepositMessage({ type: "success", text: "Vault adopted. You can deposit now." })
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0">
@@ -69,9 +172,31 @@ export function Landing() {
       </div>
       <SummitHeader />
       <main className="relative z-10 pt-8 pb-20">
-        <SummitHero />
+        <Container maxWidth="full" className="max-w-6xl">
+          <DemoNotice className="mt-8" />
+        </Container>
+        <SummitHero
+          depositTokens={depositTokenMeta}
+          selectedToken={selectedToken}
+          depositAmount={depositAmount}
+          isAdopted={isAdopted}
+          depositMessage={depositMessage}
+          quickDeposits={quickDeposits}
+          onAdopt={handleAdopt}
+          onSelectToken={setSelectedToken}
+          onDepositAmountChange={setDepositAmount}
+          onDeposit={handleDeposit}
+        />
+        <TicketSimulatorSection
+          ticketPrice={ticketPrice}
+          sharesBalance={sharesBalance}
+          canBuy={canBuy}
+          statusMessage={statusMessage}
+          confettiPieces={confettiPieces}
+          ticketCode={ticketCode}
+          onPurchase={handlePurchase}
+        />
         <SummitEvents />
-        <TicketSimulatorSection />
         <AboutSection />
       </main>
     </div>
@@ -96,7 +221,18 @@ function SummitHeader() {
   )
 }
 
-function SummitHero() {
+function SummitHero({
+  depositTokens,
+  selectedToken,
+  depositAmount,
+  isAdopted,
+  depositMessage,
+  quickDeposits,
+  onAdopt,
+  onSelectToken,
+  onDepositAmountChange,
+  onDeposit,
+}: SummitHeroProps) {
   return (
     <section className="pt-8 sm:pt-12">
       <Container maxWidth="full" className="max-w-6xl">
@@ -115,6 +251,18 @@ function SummitHero() {
           </div>
           <SummitEmblem />
         </div>
+        <SummitEventsVaultSection
+          depositTokens={depositTokens}
+          selectedToken={selectedToken}
+          depositAmount={depositAmount}
+          isAdopted={isAdopted}
+          depositMessage={depositMessage}
+          quickDeposits={quickDeposits}
+          onAdopt={onAdopt}
+          onSelectToken={onSelectToken}
+          onDepositAmountChange={onDepositAmountChange}
+          onDeposit={onDeposit}
+        />
       </Container>
     </section>
   )
@@ -124,6 +272,12 @@ function SummitEvents() {
   return (
     <section className="py-10 sm:py-12">
       <Container maxWidth="full" className="max-w-4xl">
+        <div className="mb-6">
+          <div className="h-px w-full bg-white/10" />
+          <p className="mt-4 text-xs uppercase tracking-[0.3em] text-white/50">
+            Next coming events
+          </p>
+        </div>
         <div className="space-y-4">
           {EVENTS.map((event) => (
             <EventCard key={event.title} event={event} />
@@ -131,6 +285,161 @@ function SummitEvents() {
         </div>
       </Container>
     </section>
+  )
+}
+
+function SummitEventsVaultSection({
+  depositTokens,
+  selectedToken,
+  depositAmount,
+  isAdopted,
+  depositMessage,
+  quickDeposits,
+  onAdopt,
+  onSelectToken,
+  onDepositAmountChange,
+  onDeposit,
+}: VaultDepositSectionProps) {
+  return (
+    <div className="mt-12 flex justify-center">
+      <div
+        className={`w-full max-w-5xl gap-6 lg:items-start ${
+          isAdopted ? "grid lg:grid-cols-2" : "flex justify-center"
+        }`}
+      >
+        <div className="space-y-4">
+          <div className="rounded-3xl border border-white/10 bg-black/40 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.3em] text-white/50">Vault</p>
+                <h3 className="text-2xl font-semibold">USD StableSummit</h3>
+              </div>
+              <span className="rounded-full border border-white/10 bg-white/10 px-4 py-1.5 text-sm text-white/70">
+                Stable Vault
+              </span>
+            </div>
+            <p className="mt-4 text-base text-white/60">
+              Deposit USDC, USDT, GHO, USDS, or DAI to mint vault shares.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              {depositTokens.map((token) => (
+                <span
+                  key={token.symbol}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-white/70"
+                >
+                  {token.logoUrl ? (
+                    <img
+                      src={token.logoUrl}
+                      alt={token.symbol}
+                      className="h-5 w-5 rounded-full"
+                      onError={(event) => {
+                        event.currentTarget.style.display = "none"
+                      }}
+                    />
+                  ) : (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-[10px] font-semibold text-white/60">
+                      {token.symbol.charAt(0)}
+                    </span>
+                  )}
+                  {token.symbol}
+                </span>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={onAdopt}
+              className={`mt-6 w-full rounded-2xl px-5 py-3 text-base font-semibold transition ${
+                isAdopted
+                  ? "bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 cursor-default"
+                  : "bg-white text-black hover:bg-white/90"
+              }`}
+              disabled={isAdopted}
+            >
+              {isAdopted ? "Adopted" : "Adopt it"}
+            </button>
+          </div>
+        </div>
+
+        {isAdopted && (
+          <div className="rounded-3xl border border-white/10 bg-black/40 p-6">
+            <label className="text-base font-medium text-white/80">Deposit stablecoins</label>
+            <div className="mt-4 flex flex-wrap gap-3">
+              {depositTokens.map((token) => (
+                <button
+                  key={token.symbol}
+                  type="button"
+                  onClick={() => onSelectToken(token.symbol)}
+                  className={`rounded-full border px-4 py-1.5 text-sm transition ${
+                    selectedToken === token.symbol
+                      ? "border-lime-200/70 bg-lime-200/20 text-lime-100"
+                      : "border-white/10 bg-white/5 text-white/70 hover:border-white/30"
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    {token.logoUrl ? (
+                      <img
+                        src={token.logoUrl}
+                        alt={token.symbol}
+                        className="h-5 w-5 rounded-full"
+                        onError={(event) => {
+                          event.currentTarget.style.display = "none"
+                        }}
+                      />
+                    ) : (
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-[10px] font-semibold text-white/60">
+                        {token.symbol.charAt(0)}
+                      </span>
+                    )}
+                    {token.symbol}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={depositAmount}
+                onChange={(event) => onDepositAmountChange(event.target.value)}
+                placeholder={`Enter ${selectedToken} amount`}
+                className="h-12 w-full rounded-2xl border border-white/15 bg-black/40 px-4 text-base text-white placeholder:text-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+              />
+              <button
+                type="button"
+                onClick={() => onDeposit()}
+                className="h-12 rounded-2xl bg-white px-6 text-base font-semibold text-black transition hover:bg-white/90"
+              >
+                Deposit
+              </button>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-3">
+              {quickDeposits.map((amount) => (
+                <button
+                  key={amount}
+                  type="button"
+                  onClick={() => onDeposit(amount)}
+                  className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-white/80 transition hover:border-white/30 hover:text-white"
+                >
+                  +{amount}
+                </button>
+              ))}
+            </div>
+            {depositMessage && (
+              <div
+                className={`mt-4 rounded-2xl border px-4 py-2 text-sm ${
+                  depositMessage.type === "success"
+                    ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-100"
+                    : "border-rose-400/30 bg-rose-500/10 text-rose-100"
+                }`}
+              >
+                {depositMessage.text}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -163,52 +472,15 @@ function EventCard({ event }: { event: EventInfo }) {
   )
 }
 
-function TicketSimulatorSection() {
-  const ticketPrice = 25
-  const [sharesBalance, setSharesBalance] = useState(0)
-  const [depositAmount, setDepositAmount] = useState("")
-  const [ticketCode, setTicketCode] = useState("SS-2026-0001")
-  const [purchaseCount, setPurchaseCount] = useState(0)
-  const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
-  const [confettiPieces, setConfettiPieces] = useState<ConfettiPiece[]>([])
-
-  const canBuy = sharesBalance >= ticketPrice
-
-  const quickDeposits = useMemo(() => [25, 50, 100], [])
-
-  const triggerConfetti = () => {
-    const pieces = createConfettiPieces(28)
-    setConfettiPieces(pieces)
-    window.setTimeout(() => setConfettiPieces([]), 2600)
-  }
-
-  const handleDeposit = (amount?: number) => {
-    const value = typeof amount === "number" ? amount : Number(depositAmount)
-    if (!Number.isFinite(value) || value <= 0) {
-      setStatusMessage({ type: "error", text: "Enter a valid deposit amount." })
-      return
-    }
-    setSharesBalance((prev) => Number((prev + value).toFixed(2)))
-    setDepositAmount("")
-    setStatusMessage(null)
-  }
-
-  const handlePurchase = () => {
-    if (!canBuy) {
-      setStatusMessage({ type: "error", text: "Not enough shares to buy the ticket." })
-      return
-    }
-    const nextCount = purchaseCount + 1
-    setPurchaseCount(nextCount)
-    setTicketCode(`SS-2026-${String(nextCount).padStart(4, "0")}`)
-    setSharesBalance((prev) => Number((prev - ticketPrice).toFixed(2)))
-    setStatusMessage({
-      type: "success",
-      text: "Ticket confirmed. See you at Stable Summit.",
-    })
-    triggerConfetti()
-  }
-
+function TicketSimulatorSection({
+  ticketPrice,
+  sharesBalance,
+  canBuy,
+  statusMessage,
+  confettiPieces,
+  ticketCode,
+  onPurchase,
+}: TicketSimulatorSectionProps) {
   return (
     <section className="py-10 sm:py-12">
       <Container maxWidth="full" className="max-w-5xl">
@@ -238,43 +510,9 @@ function TicketSimulatorSection() {
                 <p className="text-xs uppercase tracking-[0.3em] text-white/60">Ticket Simulator</p>
                 <h2 className="text-2xl sm:text-3xl font-semibold">Buy a ticket with vault shares</h2>
                 <p className="text-sm text-white/65">
-                  Deposit shares to your vault balance. Each share is worth $1, and the ticket costs
-                  $25. After purchase, we show your 3D ticket with a confetti celebration.
+                  Each share is worth $1, and the ticket costs $25. After purchase, we show your 3D
+                  ticket with a confetti celebration.
                 </p>
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-white/80">Deposit shares</label>
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={depositAmount}
-                    onChange={(event) => setDepositAmount(event.target.value)}
-                    placeholder="Enter shares amount"
-                    className="h-11 w-full rounded-2xl border border-white/15 bg-black/40 px-4 text-sm text-white placeholder:text-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleDeposit()}
-                    className="h-11 rounded-2xl bg-white px-5 text-sm font-semibold text-black transition hover:bg-white/90"
-                  >
-                    Deposit
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {quickDeposits.map((amount) => (
-                    <button
-                      key={amount}
-                      type="button"
-                      onClick={() => handleDeposit(amount)}
-                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80 transition hover:border-white/30 hover:text-white"
-                    >
-                      +{amount}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-black/40 p-4 text-sm">
@@ -283,14 +521,14 @@ function TicketSimulatorSection() {
                   <span className="text-white font-semibold">{formatShares(sharesBalance)} SHARES</span>
                 </div>
                 <p className="mt-2 text-xs text-white/60">
-                  1 share = $1. Ticket price: 25 shares ($25).
+                  1 share = $1. Ticket price: {ticketPrice} shares (${ticketPrice}).
                 </p>
               </div>
 
               <div className="space-y-3">
                 <button
                   type="button"
-                  onClick={handlePurchase}
+                  onClick={onPurchase}
                   disabled={!canBuy}
                   className={`w-full rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                     canBuy
@@ -298,7 +536,7 @@ function TicketSimulatorSection() {
                       : "bg-white/10 text-white/40 cursor-not-allowed"
                   }`}
                 >
-                  Buy ticket for 25 shares
+                  Buy ticket for {ticketPrice} shares
                 </button>
 
                 {statusMessage && (
@@ -328,6 +566,12 @@ function TicketSimulatorSection() {
                     Ticket is ready in your wallet.
                   </div>
                   <Ticket3D ticketCode={ticketCode} />
+                  <button
+                    type="button"
+                    className="w-full rounded-2xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white/80 transition hover:border-white/30 hover:text-white"
+                  >
+                    Add to Wallet
+                  </button>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/10 bg-black/30 p-6 text-center text-sm text-white/60">
@@ -344,12 +588,36 @@ function TicketSimulatorSection() {
 }
 
 function Ticket3D({ ticketCode }: { ticketCode: string }) {
+  const [tilt, setTilt] = useState({ x: 12, y: -16 })
+
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const x = (event.clientX - rect.left) / rect.width - 0.5
+    const y = (event.clientY - rect.top) / rect.height - 0.5
+    setTilt({
+      x: Math.max(-18, Math.min(18, y * -24)),
+      y: Math.max(-18, Math.min(18, x * 24)),
+    })
+  }
+
+  const handleMouseLeave = () => {
+    setTilt({ x: 12, y: -16 })
+  }
+
   return (
-    <div className="relative mx-auto w-full max-w-sm">
-      <div className="ticket-float" style={{ perspective: "1000px" }}>
+    <div className="relative mx-auto w-full max-w-xl">
+      <div
+        className="ticket-float"
+        style={{ perspective: "1200px" }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
         <div
-          className="relative rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-transparent p-5 text-white shadow-[0_20px_60px_rgba(0,0,0,0.55)]"
-          style={{ transform: "rotateX(16deg) rotateY(-18deg)", transformStyle: "preserve-3d" }}
+          className="relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-transparent p-7 text-white shadow-[0_24px_70px_rgba(0,0,0,0.6)] transition-transform duration-150 ease-out min-h-[180px]"
+          style={{
+            transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+            transformStyle: "preserve-3d",
+          }}
         >
           <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.25),transparent_60%)]" />
           <div className="relative space-y-4">

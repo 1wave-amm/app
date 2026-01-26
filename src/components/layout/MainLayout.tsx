@@ -2,6 +2,7 @@ import { Header } from "./Header"
 import { MobileFooterNav } from "./MobileFooterNav"
 import { Container } from "../atomic/Container"
 import { AnimatedWaveBackground } from "../landing/AnimatedWaveBackground"
+import { DemoNotice } from "../common/DemoNotice"
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -14,6 +15,11 @@ export function MainLayout({ children, maxWidth = "2xl" }: MainLayoutProps) {
       <AnimatedWaveBackground />
       <Header />
       <div className="relative z-10">
+        <div className="pt-20 px-4">
+          <Container maxWidth={maxWidth}>
+            <DemoNotice />
+          </Container>
+        </div>
         <main className="py-8 pb-20 md:pb-8">
           <Container maxWidth={maxWidth}>
             {children}
