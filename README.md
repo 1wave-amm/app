@@ -18,7 +18,7 @@ React frontend for Wave, a **permissionless liquidity-as-a-service** platform wi
 ```bash
 # Install dependencies
 pnpm install
-```
+``` 
 
 ## ⚙️ Configuration
 
