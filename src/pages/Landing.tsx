@@ -83,9 +83,11 @@ type TicketSimulatorSectionProps = {
   sharesBalance: number
   canBuy: boolean
   statusMessage: { type: "success" | "error"; text: string } | null
+  prePurchaseMessage: { type: "success" | "error"; text: string } | null
   confettiPieces: ConfettiPiece[]
   ticketCode: string
   onPurchase: () => void
+  onPrePurchase: (item: string, cost: number) => void
 }
 
 export function Landing() {
@@ -98,6 +100,7 @@ export function Landing() {
   const [purchaseCount, setPurchaseCount] = useState(0)
   const [depositMessage, setDepositMessage] = useState<DepositMessage>(null)
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const [prePurchaseMessage, setPrePurchaseMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const [confettiPieces, setConfettiPieces] = useState<ConfettiPiece[]>([])
 
   const canBuy = sharesBalance >= ticketPrice
@@ -163,6 +166,20 @@ export function Landing() {
     setDepositMessage({ type: "success", text: "Vault adopted. You can deposit now." })
   }
 
+  const handlePrePurchase = (item: string, cost: number) => {
+    if (sharesBalance < cost) {
+      setPrePurchaseMessage({ type: "error", text: `Not enough shares to buy ${item}.` })
+      return
+    }
+    setSharesBalance((prev) => Number((prev - cost).toFixed(2)))
+    setPrePurchaseMessage({
+      type: "success",
+      text: `${item} purchased successfully!`,
+    })
+    // Clear message after 3 seconds
+    setTimeout(() => setPrePurchaseMessage(null), 3000)
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0">
@@ -192,9 +209,11 @@ export function Landing() {
           sharesBalance={sharesBalance}
           canBuy={canBuy}
           statusMessage={statusMessage}
+          prePurchaseMessage={prePurchaseMessage}
           confettiPieces={confettiPieces}
           ticketCode={ticketCode}
           onPurchase={handlePurchase}
+          onPrePurchase={handlePrePurchase}
         />
         <SummitEvents />
         <AboutSection />
@@ -477,9 +496,11 @@ function TicketSimulatorSection({
   sharesBalance,
   canBuy,
   statusMessage,
+  prePurchaseMessage,
   confettiPieces,
   ticketCode,
   onPurchase,
+  onPrePurchase,
 }: TicketSimulatorSectionProps) {
   return (
     <section className="py-10 sm:py-12">
@@ -558,17 +579,19 @@ function TicketSimulatorSection({
               </div>
             </div>
 
-            <div className="flex-1">
+            <div className="flex-1 flex items-start justify-center">
               {statusMessage?.type === "success" ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-emerald-200">
+                <div className="w-full max-w-md -mt-4">
+                  <div className="flex items-center justify-center gap-2 text-sm text-emerald-200 mb-3">
                     <CheckCircle2 className="h-4 w-4" />
-                    Ticket is ready in your wallet.
+                    <span>Ticket is ready in your wallet.</span>
                   </div>
-                  <Ticket3D ticketCode={ticketCode} />
+                  <div className="flex justify-center mb-4">
+                    <Ticket3D ticketCode={ticketCode} />
+                  </div>
                   <button
                     type="button"
-                    className="w-full rounded-2xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white/80 transition hover:border-white/30 hover:text-white"
+                    className="w-full rounded-2xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white/80 transition hover:border-white/30 hover:text-white hover:bg-white/15"
                   >
                     Add to Wallet
                   </button>
@@ -581,6 +604,29 @@ function TicketSimulatorSection({
               )}
             </div>
           </div>
+
+          {statusMessage?.type === "success" && (
+            <>
+              <div className="h-px w-full bg-white/10 my-6" />
+              <PrePurchaseCard sharesBalance={sharesBalance} onPrePurchase={onPrePurchase} />
+              {prePurchaseMessage && (
+                <div
+                  className={`mt-4 flex items-start gap-2 rounded-2xl border px-4 py-3 text-sm ${
+                    prePurchaseMessage.type === "success"
+                      ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-100"
+                      : "border-rose-400/30 bg-rose-500/10 text-rose-100"
+                  }`}
+                >
+                  {prePurchaseMessage.type === "success" ? (
+                    <PartyPopper className="mt-0.5 h-4 w-4" />
+                  ) : (
+                    <AlertTriangle className="mt-0.5 h-4 w-4" />
+                  )}
+                  <span>{prePurchaseMessage.text}</span>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </Container>
     </section>
@@ -641,6 +687,76 @@ function Ticket3D({ ticketCode }: { ticketCode: string }) {
         </div>
       </div>
       <div className="absolute inset-x-8 -bottom-6 h-6 rounded-full bg-black/70 blur-xl" />
+    </div>
+  )
+}
+
+function PrePurchaseCard({
+  sharesBalance,
+  onPrePurchase,
+}: {
+  sharesBalance: number
+  onPrePurchase: (item: string, cost: number) => void
+}) {
+  const items = [
+    { name: "Beer", cost: 4, emoji: "🍺" },
+    { name: "Sandwich", cost: 7, emoji: "🥪" },
+  ]
+
+  const [shagPoints, setShagPoints] = useState(1)
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/40 p-5">
+      <h3 className="text-base font-semibold text-white mb-2">Pre-purchase with shares</h3>
+      <p className="text-xs text-white/60 mb-4">
+        Use your vouchers at merchants inside the conference to get beer, sandwiches, or swag.
+      </p>
+      <div className="flex flex-wrap gap-3">
+        {items.map((item) => {
+          const canBuy = sharesBalance >= item.cost
+          return (
+            <button
+              key={item.name}
+              type="button"
+              onClick={() => onPrePurchase(item.name, item.cost)}
+              disabled={!canBuy}
+              className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm transition ${
+                canBuy
+                  ? "border-white/15 bg-white/5 text-white hover:border-white/30 hover:bg-white/10"
+                  : "border-white/10 bg-white/5 text-white/40 cursor-not-allowed"
+              }`}
+            >
+              <span className="text-xl">{item.emoji}</span>
+              <span className="font-medium">{item.name}</span>
+              <span className="text-white/70">{item.cost} shares</span>
+            </button>
+          )
+        })}
+        <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3">
+          <span className="text-xl">🎁</span>
+          <span className="font-medium text-sm">Shag Points</span>
+          <span className="text-xs text-white/60">1 point = 1$ shares</span>
+          <input
+            type="number"
+            min="1"
+            value={shagPoints}
+            onChange={(e) => setShagPoints(Math.max(1, parseInt(e.target.value) || 1))}
+            className="w-16 rounded-lg border border-white/15 bg-black/40 px-2 py-1 text-sm text-white placeholder:text-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => onPrePurchase(`${shagPoints} Shag Points`, shagPoints)}
+          disabled={sharesBalance < shagPoints}
+          className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+            sharesBalance >= shagPoints
+              ? "border-white/15 bg-white/10 text-white hover:border-white/30 hover:bg-white/20"
+              : "border-white/10 bg-white/5 text-white/40 cursor-not-allowed"
+          }`}
+        >
+          Buy
+        </button>
+      </div>
     </div>
   )
 }
