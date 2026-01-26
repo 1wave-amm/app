@@ -3,6 +3,7 @@ import { Calendar, CheckCircle2, MapPin, PartyPopper, AlertTriangle } from "luci
 import { Container } from "@/components/atomic/Container"
 import { DemoNotice } from "@/components/common/DemoNotice"
 import { FactorTokenlist } from "@factordao/tokenlist"
+import { Link } from "react-router-dom"
 
 type EventInfo = {
   title: string
@@ -234,7 +235,12 @@ function SummitHeader() {
             Stable Summit
           </span>
         </div>
-        <div className="h-6 w-6 rounded-full bg-white/90 shadow-[0_0_12px_rgba(255,255,255,0.45)]" />
+        <Link
+          to="/embed-vault"
+          className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white/80 transition hover:border-white/30 hover:text-white hover:bg-white/15"
+        >
+          Embed your vault
+        </Link>
       </Container>
     </header>
   )
@@ -777,8 +783,14 @@ function AboutSection() {
             and every llama in between.
           </p>
         </div>
-        <div className="mt-10 flex justify-center">
+        <div className="mt-10 flex flex-col items-center gap-6">
           <SummitEmblem muted />
+          <Link
+            to="/embed-vault"
+            className="inline-flex items-center rounded-2xl border border-white/15 bg-white/10 px-6 py-3 text-sm font-semibold text-white/80 transition hover:border-white/30 hover:text-white hover:bg-white/15"
+          >
+            Embed your vault widget
+          </Link>
         </div>
       </Container>
     </section>

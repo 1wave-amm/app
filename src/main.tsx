@@ -1,5 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { Buffer } from "buffer"
 import { WagmiProvider } from 'wagmi'
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
 import '@rainbow-me/rainbowkit/styles.css'
@@ -9,6 +10,10 @@ import { RainbowKitThemeProvider } from './components/providers/RainbowKitThemeP
 import './index.css'
 
 const queryClient = new QueryClient()
+
+if (typeof window !== "undefined") {
+  globalThis.Buffer = Buffer
+}
 
 // Applica il tema iniziale al DOM prima di montare l'app
 // Questo assicura che RainbowKit veda il tema corretto fin dall'inizio

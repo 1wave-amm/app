@@ -99,13 +99,13 @@ export function Header() {
             </Badge>
           </Link>
 
-          {/* Navigation - hidden on mobile, shown on desktop */}
-          <nav className="hidden md:flex items-center space-x-1">
+          {/* Navigation */}
+          <nav className="flex items-center space-x-1 overflow-x-auto flex-1 justify-center min-w-0">
             <Link to="/swap">
               <Button
                 variant={isActive("/swap") ? "glass-apple" : "ghost"}
                 className={cn(
-                  "rounded-full",
+                  "rounded-full whitespace-nowrap",
                   isActive("/swap") && "glass-apple"
                 )}
               >
@@ -116,7 +116,7 @@ export function Header() {
               <Button
                 variant={isActive("/create-vault") ? "glass-apple" : "ghost"}
                 className={cn(
-                  "rounded-full",
+                  "rounded-full whitespace-nowrap",
                   isActive("/create-vault") && "glass-apple"
                 )}
               >
@@ -127,7 +127,7 @@ export function Header() {
               <Button
                 variant={isActive("/vaults") ? "glass-apple" : "ghost"}
                 className={cn(
-                  "rounded-full",
+                  "rounded-full whitespace-nowrap",
                   isActive("/vaults") && "glass-apple"
                 )}
               >
@@ -138,6 +138,17 @@ export function Header() {
 
           {/* Wallet Connect & Theme Toggle */}
           <div className="flex items-center gap-2">
+            <Link to="/embed-vault" className="hidden md:block">
+              <Button
+                variant={isActive("/embed-vault") ? "glass-apple" : "ghost"}
+                className={cn(
+                  "rounded-full whitespace-nowrap",
+                  isActive("/embed-vault") && "glass-apple"
+                )}
+              >
+                Embed
+              </Button>
+            </Link>
             {/* Network Warning Button - Desktop */}
             {showNetworkWarning && (
               <Button

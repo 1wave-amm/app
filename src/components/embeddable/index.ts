@@ -1,0 +1,6 @@
+export { VaultWidget } from "./VaultWidget"
+export type { VaultWidgetConfig } from "./VaultWidget"
+export { VaultWidgetEmbed } from "./VaultWidgetEmbed"
+export type { VaultWidgetEmbedProps, WalletMode } from "./VaultWidgetEmbed"
+export { defaultTheme } from "./theme"
+export type { VaultWidgetTheme } from "./theme"

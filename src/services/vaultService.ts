@@ -5,7 +5,9 @@
  */
 
 const STATS_API_BASE_URL = import.meta.env.VITE_STATS_API_BASE_URL || ""
-const SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cmgzitcts001c5np28moc9lyy/subgraphs/onewave/backend-0.0.6/gn"
+const SUBGRAPH_URL =
+  import.meta.env.VITE_SUBGRAPH_URL ||
+  "https://api.goldsky.com/api/public/project_cmgzitcts001c5np28moc9lyy/subgraphs/onewave/backend-0.0.6/gn"
 
 // ==================== Type Definitions ====================
 
@@ -867,5 +869,47 @@ export async function fetchVaultByAddress(address: string): Promise<AggregatedVa
   const vaults = await fetchAggregatedVaults()
   const addressLower = address.toLowerCase()
   return vaults.find((v) => v.address.toLowerCase() === addressLower) || null
+}
+
+/**
+ * Fetches a single vault by address with stats API fallback.
+ * Mirrors VaultDetail behavior for direct address fetch.
+ */
+export async function fetchVaultByAddressWithFallback(address: string): Promise<AggregatedVault | null> {
+  const aggregated = await fetchVaultByAddress(address)
+  if (aggregated) return aggregated
+
+  if (!STATS_API_BASE_URL) {
+    return null
+  }
+
+  try {
+    const response = await fetch(`${STATS_API_BASE_URL}/strategies/${address}`)
+    if (!response.ok) {
+      return null
+    }
+    const data = await response.json()
+    return {
+      address: data.address || address,
+      name: data.name,
+      chainId: data.chainId || 8453,
+      description: data.description,
+      tvlUsd: data.tvlUsd || data.tvl,
+      pricePerShare: data.pricePerShare,
+      pricePerShareUsd: data.pricePerShareUsd,
+      performance24h: data.performance24h,
+      performance7d: data.performance7d,
+      performance30d: data.performance30d,
+      performance90d: data.performance90d,
+      apy: data.apy || data.calculated_apy,
+      tokens: data.tokens || [],
+      protocols: data.protocols,
+      depositStrategy: data.depositStrategy,
+      balances: data.balances,
+      vaultAnalytics: data.vaultAnalytics,
+    }
+  } catch {
+    return null
+  }
 }
 

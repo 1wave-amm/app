@@ -7,6 +7,7 @@ import { CreateVault } from "@/pages/CreateVault"
 import { Vaults } from "@/pages/Vaults"
 import { VaultDetail } from "@/pages/VaultDetail"
 import { Landing } from "@/pages/Landing"
+import { VaultWidgetDemo } from "@/pages/VaultWidgetDemo"
 import { Toaster } from "@/components/ui/toaster"
 
 function App() {
@@ -55,6 +56,7 @@ function App() {
               </MainLayout>
             }
           />
+          <Route path="/embed-vault" element={<VaultWidgetDemo />} />
         </Routes>
         <Toaster />
       </BrowserRouter>
