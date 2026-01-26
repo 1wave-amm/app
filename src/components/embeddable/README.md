@@ -21,6 +21,28 @@ npm i @factordao/embeddable @factordao/sdk @factordao/sdk-studio @factordao/toke
 npm i @rainbow-me/rainbowkit wagmi viem @tanstack/react-query
 ```
 
+## CDN Embed (UMD)
+
+```html
+<link rel="stylesheet" href="https://YOUR-VERCEL-DOMAIN/embeddable/vault-widget.css" />
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://YOUR-VERCEL-DOMAIN/embeddable/vault-widget.umd.js"></script>
+
+<div id="vault-widget-root"></div>
+<script>
+  VaultWidget.createVaultWidget({
+    target: "#vault-widget-root",
+    walletMode: "internal",
+    projectId: "YOUR_PROJECT_ID",
+    rpcUrl: "https://mainnet.base.org",
+    config: {
+      vaultAddress: "0x...",
+    },
+  })
+</script>
+```
+
 ## Utilizzo Base (con provider interni)
 
 ```tsx
@@ -220,3 +242,4 @@ interface VaultWidgetTheme {
 - Per `walletMode="external"` l'host deve fornire Wagmi/React Query/RainbowKit
 - Per `walletMode="internal"` il widget crea i provider interni (serve `projectId`)
 - Per usarlo su FE esterni serve una build pubblicata (npm) o un bundle CDN
+- Per il bundle CDN esegui `npm run build:embeddable` e deploya `public/embeddable/`

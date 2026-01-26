@@ -296,9 +296,10 @@ ${configString}
         return `<!DOCTYPE html>
 <html>
 <head>
+  <link rel="stylesheet" href="https://YOUR-VERCEL-DOMAIN/embeddable/vault-widget.css" />
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="./vault-widget.js"></script>
+  <script src="https://YOUR-VERCEL-DOMAIN/embeddable/vault-widget.umd.js"></script>
 </head>
 <body>
   <div id="vault-widget-root"></div>
@@ -306,10 +307,13 @@ ${configString}
     const config = {
 ${configString}
     }
-    ReactDOM.render(
-      React.createElement(VaultWidget, { config }),
-      document.getElementById('vault-widget-root')
-    )
+    VaultWidget.createVaultWidget({
+      target: "#vault-widget-root",
+      walletMode: "internal",
+      projectId: "YOUR_PROJECT_ID",
+      rpcUrl: "https://mainnet.base.org",
+      config,
+    })
   </script>
 </body>
 </html>`
@@ -731,6 +735,29 @@ npm i @rainbow-me/rainbowkit wagmi viem @tanstack/react-query`}
                 </div>
 
                 <div>
+                  <h3 className="text-sm font-medium text-[#00D9FF] mb-2">CDN Embed (UMD)</h3>
+                  <pre className="bg-black/70 p-3 rounded-lg overflow-auto text-[11px] text-white border border-white/10">
+{`<link rel="stylesheet" href="https://YOUR-VERCEL-DOMAIN/embeddable/vault-widget.css" />
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://YOUR-VERCEL-DOMAIN/embeddable/vault-widget.umd.js"></script>
+
+<div id="vault-widget-root"></div>
+<script>
+  VaultWidget.createVaultWidget({
+    target: "#vault-widget-root",
+    walletMode: "internal",
+    projectId: "YOUR_PROJECT_ID",
+    rpcUrl: "https://mainnet.base.org",
+    config: {
+      vaultAddress: "0x...",
+    },
+  })
+</script>`}
+                  </pre>
+                </div>
+
+                <div>
                   <h3 className="text-sm font-medium text-[#00D9FF] mb-2">Basic Usage (internal providers)</h3>
                   <pre className="bg-black/70 p-3 rounded-lg overflow-auto text-[11px] text-white border border-white/10">
 {`import { VaultWidgetEmbed } from "@factordao/embeddable"
@@ -890,6 +917,7 @@ function MyVaultPage() {
                     <div>- For walletMode="external" the host must provide Wagmi/React Query/RainbowKit</div>
                     <div>- For walletMode="internal" the widget creates its own providers (requires projectId)</div>
                     <div>- For external FEs you need a published npm package or a CDN bundle</div>
+                    <div>- For the CDN bundle run: npm run build:embeddable</div>
                   </div>
                 </div>
               </div>
