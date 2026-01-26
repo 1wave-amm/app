@@ -87,6 +87,10 @@ export interface AggregatedVault {
   name: string
   chainId: number
   description?: string
+  metadata?: {
+    symbol?: string
+    assetDenominatorAddress?: string
+  }
   
   // Metrics
   tvlUsd?: string
