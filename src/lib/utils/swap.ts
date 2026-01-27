@@ -108,7 +108,10 @@ export async function getPairFromSubgraph(
  */
 async function getVaultTvl(vaultAddress: Address): Promise<string | undefined> {
   try {
-    const STATS_API_BASE_URL = import.meta.env.VITE_STATS_API_BASE_URL || ''
+    const STATS_API_BASE_URL =
+      import.meta.env.VITE_STATS_API_BASE_URL ||
+      import.meta.env.VITE_PUBLIC_STATS_API_URL ||
+      "https://factor-studio-stats-api-staging.fly.dev"
     if (!STATS_API_BASE_URL) {
       return undefined
     }

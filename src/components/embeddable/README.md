@@ -43,6 +43,57 @@ npm i @rainbow-me/rainbowkit wagmi viem @tanstack/react-query
 </script>
 ```
 
+## External FE Integration (Step-by-step)
+
+### Option A — CDN (recommended)
+1. Build the bundle:
+```bash
+npm run build:embeddable
+```
+2. Deploy the app (Vercel serves `public/embeddable/*`).
+3. Use the UMD script in the external FE:
+```html
+<link rel="stylesheet" href="https://YOUR-VERCEL-DOMAIN/embeddable/vault-widget.css" />
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://YOUR-VERCEL-DOMAIN/embeddable/vault-widget.umd.js"></script>
+
+<div id="vault-widget-root"></div>
+<script>
+  VaultWidget.createVaultWidget({
+    target: "#vault-widget-root",
+    walletMode: "internal",
+    projectId: "YOUR_PROJECT_ID",
+    rpcUrl: "https://mainnet.base.org",
+    config: {
+      vaultAddress: "0x...",
+    },
+  })
+</script>
+```
+
+### Option B — React app (package)
+If you publish `@factordao/embeddable`, install and use:
+```bash
+npm i @factordao/embeddable @factordao/sdk @factordao/sdk-studio @factordao/tokenlist
+npm i @rainbow-me/rainbowkit wagmi viem @tanstack/react-query
+```
+```tsx
+import "@rainbow-me/rainbowkit/styles.css"
+import { VaultWidgetEmbed } from "@factordao/embeddable"
+
+export default function App() {
+  return (
+    <VaultWidgetEmbed
+      walletMode="internal"
+      projectId="YOUR_PROJECT_ID"
+      rpcUrl="https://mainnet.base.org"
+      config={{ vaultAddress: "0x..." }}
+    />
+  )
+}
+```
+
 ## Utilizzo Base (con provider interni)
 
 ```tsx

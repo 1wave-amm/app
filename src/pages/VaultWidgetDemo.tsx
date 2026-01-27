@@ -16,6 +16,7 @@ export function VaultWidgetDemo() {
   const [hideAddress, setHideAddress] = useState(false)
   const [showTokenChips, setShowTokenChips] = useState(false)
   const [showAquaPairs, setShowAquaPairs] = useState(false)
+  const [showWalletConnect, setShowWalletConnect] = useState(true)
   const [hideFees, setHideFees] = useState(false)
   const [hidePerformance, setHidePerformance] = useState(false)
   const [showTVL, setShowTVL] = useState(true)
@@ -69,6 +70,7 @@ export function VaultWidgetDemo() {
     setHideAddress(false)
     setShowTokenChips(false)
     setShowAquaPairs(false)
+    setShowWalletConnect(true)
     setHideFees(false)
     setHidePerformance(false)
     setShowTVL(true)
@@ -150,6 +152,7 @@ export function VaultWidgetDemo() {
       hideAddress,
       showTokenChips,
       showAquaPairs,
+      showWalletConnect,
       hideFees,
       hidePerformance,
       showTVL,
@@ -218,6 +221,7 @@ export function VaultWidgetDemo() {
       hideAddress && "    hideAddress: true,",
       showTokenChips && "    showTokenChips: true,",
       showAquaPairs && "    showAquaPairs: true,",
+      !showWalletConnect && "    showWalletConnect: false,",
       hideFees && "    hideFees: true,",
       hidePerformance && "    hidePerformance: true,",
       !showTVL && "    showTVL: false,",
@@ -494,6 +498,16 @@ ${configString}
                       </div>
                       <div className="flex items-center gap-2">
                         <Checkbox
+                          id="showWalletConnect"
+                          checked={showWalletConnect}
+                          onCheckedChange={(checked) => setShowWalletConnect(checked === true)}
+                        />
+                        <Label htmlFor="showWalletConnect" className="text-xs text-white/80 cursor-pointer">
+                          Show Wallet Connect
+                        </Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
                           id="hideFees"
                           checked={hideFees}
                           onCheckedChange={(checked) => setHideFees(checked === true)}
@@ -754,6 +768,17 @@ npm i @rainbow-me/rainbowkit wagmi viem @tanstack/react-query`}
     },
   })
 </script>`}
+                  </pre>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-[#00D9FF] mb-2">Deployment (CDN bundle)</h3>
+                  <pre className="bg-black/70 p-3 rounded-lg overflow-auto text-[11px] text-white border border-white/10">
+{`npm run build:embeddable
+# Deploy the app to Vercel
+# Files are served from /public/embeddable/*
+# Example:
+# https://YOUR-VERCEL-DOMAIN/embeddable/vault-widget.umd.js`}
                   </pre>
                 </div>
 

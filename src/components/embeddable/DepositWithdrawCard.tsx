@@ -30,9 +30,10 @@ export function DepositWithdrawCard({
   theme,
   customLabels,
 }: DepositWithdrawCardProps) {
+  const normalizedVaultAddress = vaultAddress?.toLowerCase().trim()
   const { data: vault, isLoading } = useQuery<AggregatedVault | null>({
-    queryKey: ["vault", vaultAddress],
-    queryFn: () => fetchVaultByAddressWithFallback(vaultAddress),
+    queryKey: ["vault", normalizedVaultAddress],
+    queryFn: () => fetchVaultByAddressWithFallback(normalizedVaultAddress),
     retry: 2,
   })
 
@@ -111,7 +112,7 @@ export function DepositWithdrawCard({
       }
     })
     console.log("[VaultWidget] deposit/withdraw token logos", {
-      vaultAddress,
+      vaultAddress: normalizedVaultAddress,
       tokenCount: vault?.tokens?.length || 0,
       logosFound: resolved.filter((t) => !!t.logoUrl).length,
       resolved,

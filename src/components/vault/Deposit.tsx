@@ -234,6 +234,17 @@ export function Deposit({ vault, availableTokens, onBalanceUpdate }: DepositProp
     return denominatorToken?.decimals || 18
   }, [vault.metadata?.assetDenominatorAddress, vault.tokens])
 
+  const normalizeSharesString = (value: string) => {
+    if (denominatorDecimals !== 6) return value
+    const parts = value.split(".")
+    if (parts.length !== 2) return value
+    const [intPart, decPart] = parts
+    if (decPart.startsWith("0000000000000")) {
+      return `${intPart}.${decPart.slice(13)}`
+    }
+    return value
+  }
+
 
   const handleDeposit = async () => {
     if (!isConnected && openConnectModal) {
@@ -296,7 +307,15 @@ export function Deposit({ vault, availableTokens, onBalanceUpdate }: DepositProp
             <span className="text-gray-500">Loading deposit options...</span>
           </div>
         )}
-        {isLoadingBalance ? (
+        {!isConnected ? (
+          <button
+            type="button"
+            onClick={() => openConnectModal?.()}
+            className="text-xs text-muted-foreground hover:text-foreground transition"
+          >
+            Connect Wallet
+          </button>
+        ) : isLoadingBalance ? (
           <div className="flex flex-col gap-1">
             <span className="text-xs text-muted-foreground">Wallet balance:</span>
             <Skeleton className="w-16 h-4" />
@@ -316,36 +335,46 @@ export function Deposit({ vault, availableTokens, onBalanceUpdate }: DepositProp
         )}
       </div>
 
-      <div className="flex flex-col items-end gap-2">
-        <div className="flex items-center gap-5 w-full bg-white dark:bg-[#1B1E20] border border-gray-200 dark:border-gray-700 ring-0 outline-none text-foreground px-2 rounded-lg">
-          <Input
-            id="depositAmount"
-            type="number"
-            placeholder="Enter deposit amount..."
-            value={depositAmount}
-            onChange={(e) => setDepositAmount(e.target.value)}
-            className="flex items-center gap-5 w-full bg-white dark:bg-[#1B1E20] !border-0 ring-0 outline-none text-foreground"
+      {!isConnected ? (
+        <button
+          type="button"
+          onClick={() => openConnectModal?.()}
+          className="w-full h-10 rounded-full border border-border/50 text-sm text-muted-foreground hover:text-foreground transition"
+        >
+          Connect Wallet
+        </button>
+      ) : (
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-5 w-full bg-white dark:bg-[#1B1E20] border border-gray-200 dark:border-gray-700 ring-0 outline-none text-foreground px-2 rounded-lg">
+            <Input
+              id="depositAmount"
+              type="number"
+              placeholder="Enter deposit amount..."
+              value={depositAmount}
+              onChange={(e) => setDepositAmount(e.target.value)}
+              className="flex items-center gap-5 w-full bg-white dark:bg-[#1B1E20] !border-0 ring-0 outline-none text-foreground"
+            />
+          </div>
+
+          <PercentageSelector
+            onPercentageChange={(percentage) => {
+              // Calculate amount based on percentage of balance
+              // formattedBalance is already calculated with correct decimals from formatUnits
+              const amount = formattedBalance * (percentage / 100)
+              
+              // Format to string, preserving appropriate decimal places
+              // For tokens with 6 decimals (USDC), show up to 6 decimals
+              // For tokens with 18 decimals (WETH), show up to 8 decimals for readability
+              const tokenDecimals = token?.decimals || 18
+              const maxDecimals = tokenDecimals <= 6 ? 6 : 8
+              
+              // Convert to string and remove trailing zeros
+              const amountStr = amount.toFixed(maxDecimals)
+              setDepositAmount(parseFloat(amountStr).toString())
+            }}
           />
         </div>
-
-        <PercentageSelector
-          onPercentageChange={(percentage) => {
-            // Calculate amount based on percentage of balance
-            // formattedBalance is already calculated with correct decimals from formatUnits
-            const amount = formattedBalance * (percentage / 100)
-            
-            // Format to string, preserving appropriate decimal places
-            // For tokens with 6 decimals (USDC), show up to 6 decimals
-            // For tokens with 18 decimals (WETH), show up to 8 decimals for readability
-            const tokenDecimals = token?.decimals || 18
-            const maxDecimals = tokenDecimals <= 6 ? 6 : 8
-            
-            // Convert to string and remove trailing zeros
-            const amountStr = amount.toFixed(maxDecimals)
-            setDepositAmount(parseFloat(amountStr).toString())
-          }}
-        />
-      </div>
+      )}
 
       {depositEstimate && (
         <ActionPreview
@@ -354,8 +383,10 @@ export function Deposit({ vault, availableTokens, onBalanceUpdate }: DepositProp
             formatUnits(BigInt(depositEstimate?.shareAmountBN || '0'), denominatorDecimals)
           )}
           tokenSymbol={vault.metadata?.symbol || vault.name}
-          sharesString={formatUnits(depositEstimate?.shareAmountBN as any, denominatorDecimals)}
-          rawValue={formatUnits(BigInt(depositEstimate?.shareAmountBN || '0'), 18)}
+          sharesString={normalizeSharesString(
+            formatUnits(depositEstimate?.shareAmountBN as any, denominatorDecimals)
+          )}
+          compact
         />
       )}
 

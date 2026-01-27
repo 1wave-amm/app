@@ -63,9 +63,10 @@ export function VaultInfoCard({
   hidePerformance = false,
   showTVL = true,
 }: VaultInfoCardProps) {
+  const normalizedVaultAddress = vaultAddress?.toLowerCase().trim()
   const { data: vault, isLoading, error } = useQuery<AggregatedVault | null>({
-    queryKey: ["vault", vaultAddress],
-    queryFn: () => fetchVaultByAddressWithFallback(vaultAddress),
+    queryKey: ["vault", normalizedVaultAddress],
+    queryFn: () => fetchVaultByAddressWithFallback(normalizedVaultAddress),
     retry: 2,
   })
 
@@ -118,7 +119,7 @@ export function VaultInfoCard({
       }
     })
     console.log("[VaultWidget] vault token logos", {
-      vaultAddress,
+      vaultAddress: normalizedVaultAddress,
       tokenCount: vault?.tokens?.length || 0,
       logosFound: resolved.filter((t) => !!t.logoUrl).length,
       resolved,

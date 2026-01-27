@@ -346,21 +346,31 @@ export function Withdraw({ vault, availableTokens, onBalanceUpdate }: WithdrawPr
             )
           )}
           tokenSymbol={token?.symbol || ''}
+          compact
         />
       )}
 
-      <Button
-        className="w-full h-10 rounded-full bg-accent"
-        disabled={
-          isWaitingForWithdraw ||
-          !withdrawAmount ||
-          parseFloat(withdrawAmount) <= 0 ||
-          insufficientShares
-        }
-        onClick={handleWithdraw}
-      >
-        {isWaitingForWithdraw ? <Loader2 className="animate-spin" size={16} /> : 'Withdraw'}
-      </Button>
+      {!isConnected ? (
+        <Button
+          className="w-full h-10 rounded-full bg-accent"
+          onClick={() => openConnectModal?.()}
+        >
+          Connect Wallet
+        </Button>
+      ) : (
+        <Button
+          className="w-full h-10 rounded-full bg-accent"
+          disabled={
+            isWaitingForWithdraw ||
+            !withdrawAmount ||
+            parseFloat(withdrawAmount) <= 0 ||
+            insufficientShares
+          }
+          onClick={handleWithdraw}
+        >
+          {isWaitingForWithdraw ? <Loader2 className="animate-spin" size={16} /> : 'Withdraw'}
+        </Button>
+      )}
 
       {insufficientShares && (
         <p className="text-sm text-red-500">Insufficient shares for withdraw</p>

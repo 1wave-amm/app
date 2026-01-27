@@ -431,7 +431,11 @@ export function useCreateVaultDeployment(params: VaultDeploymentParams) {
       }
 
       // Step 3: Send to API (using same endpoint as Factor Studio)
-      const STATS_API_BASE = import.meta.env.VITE_STATS_API_BASE_URL || import.meta.env.VITE_STATS_API_BASE || 'https://api.factordao.com'
+      const STATS_API_BASE =
+        import.meta.env.VITE_STATS_API_BASE_URL ||
+        import.meta.env.VITE_PUBLIC_STATS_API_URL ||
+        import.meta.env.VITE_STATS_API_BASE ||
+        "https://factor-studio-stats-api-staging.fly.dev"
       const response = await fetch(`${STATS_API_BASE}/strategies/save`, {
         method: 'POST',
         headers: {

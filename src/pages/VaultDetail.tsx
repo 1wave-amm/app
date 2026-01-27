@@ -20,7 +20,10 @@ import { base } from "viem/chains"
 import { getBaseRpcUrl } from "@/lib/constants/rpc"
 import { DisclaimerBanner } from "@/components/common/DisclaimerBanner"
 
-const STATS_API_BASE_URL = import.meta.env.VITE_STATS_API_BASE_URL || ""
+const STATS_API_BASE_URL =
+  import.meta.env.VITE_STATS_API_BASE_URL ||
+  import.meta.env.VITE_PUBLIC_STATS_API_URL ||
+  "https://factor-studio-stats-api-staging.fly.dev"
 
 // Format fee from string (could be in wei or already a percentage)
 function formatFee(fee?: string): string {

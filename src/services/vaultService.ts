@@ -4,7 +4,10 @@
  * - Stats API (vault metrics and analytics)
  */
 
-const STATS_API_BASE_URL = import.meta.env.VITE_STATS_API_BASE_URL || ""
+const STATS_API_BASE_URL =
+  import.meta.env.VITE_STATS_API_BASE_URL ||
+  import.meta.env.VITE_PUBLIC_STATS_API_URL ||
+  "https://factor-studio-stats-api-staging.fly.dev"
 const SUBGRAPH_URL =
   import.meta.env.VITE_SUBGRAPH_URL ||
   "https://api.goldsky.com/api/public/project_cmgzitcts001c5np28moc9lyy/subgraphs/onewave/backend-0.0.6/gn"
@@ -423,6 +426,91 @@ function normalizeChainId(_chain: string | number | undefined): number {
 
 function normalizeVaultAddress(vault: ProVaultResponse): string {
   return vault.vault_address || vault.address || vault.position_address || ""
+}
+
+async function fetchVaultByAddressFromSubgraph(address: string): Promise<AggregatedVault | null> {
+  if (!address) return null
+  try {
+    const addressLower = address.toLowerCase()
+    const query = `
+      {
+        vault(id: "${addressLower}") {
+          id
+          name
+          symbol
+          depositFee
+          withdrawFee
+          managementFee
+          performanceFee
+          pricePerShare
+          assets
+          depositAssets
+          withdrawAssets
+          denominator
+        }
+        aquaPairs(where: { vault: "${addressLower}" }) {
+          id
+          txid
+          token0
+          token1
+          feeBps
+          vault
+          pairHash
+        }
+      }
+    `
+
+    const response = await fetch(SUBGRAPH_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    })
+
+    if (!response.ok) {
+      return null
+    }
+
+    const data = await response.json()
+    if (data.errors) {
+      return null
+    }
+
+    const subgraphVault: SubgraphVault | undefined = data.data?.vault
+    const aquaPairs: AquaPair[] = data.data?.aquaPairs || []
+    if (!subgraphVault) return null
+
+    const tokenAddresses =
+      subgraphVault.depositAssets ||
+      subgraphVault.assets ||
+      subgraphVault.withdrawAssets ||
+      []
+
+    const tokens: VaultToken[] = tokenAddresses.map((addr: string) => ({
+      address: addr,
+      symbol: "",
+      name: "",
+      decimals: 18,
+    }))
+
+    return {
+      address: subgraphVault.id,
+      name: subgraphVault.name,
+      chainId: BASE_CHAIN_ID,
+      pricePerShare: subgraphVault.pricePerShare,
+      depositFee: subgraphVault.depositFee,
+      withdrawFee: subgraphVault.withdrawFee,
+      managementFee: subgraphVault.managementFee,
+      performanceFee: subgraphVault.performanceFee,
+      tokens: tokens.length > 0 ? tokens : undefined,
+      aquaPairs,
+      metadata: {
+        symbol: subgraphVault.symbol,
+        assetDenominatorAddress: subgraphVault.denominator,
+      },
+    }
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -880,15 +968,19 @@ export async function fetchVaultByAddress(address: string): Promise<AggregatedVa
  * Mirrors VaultDetail behavior for direct address fetch.
  */
 export async function fetchVaultByAddressWithFallback(address: string): Promise<AggregatedVault | null> {
-  const aggregated = await fetchVaultByAddress(address)
+  const normalizedAddress = address?.toLowerCase()
+  const aggregated = await fetchVaultByAddress(normalizedAddress)
   if (aggregated) return aggregated
+
+  const subgraphVault = await fetchVaultByAddressFromSubgraph(normalizedAddress)
+  if (subgraphVault) return subgraphVault
 
   if (!STATS_API_BASE_URL) {
     return null
   }
 
   try {
-    const response = await fetch(`${STATS_API_BASE_URL}/strategies/${address}`)
+    const response = await fetch(`${STATS_API_BASE_URL}/strategies/${normalizedAddress}`)
     if (!response.ok) {
       return null
     }

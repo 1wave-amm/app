@@ -4,6 +4,7 @@ interface ActionPreviewProps {
   tokenSymbol?: string
   sharesString?: string
   rawValue?: string
+  compact?: boolean
 }
 
 export function ActionPreview({
@@ -12,6 +13,7 @@ export function ActionPreview({
   tokenSymbol,
   sharesString,
   rawValue,
+  compact = false,
 }: ActionPreviewProps) {
   const formatCompactNumber = (value: string) => {
     if (!value) return <span>0</span>
@@ -44,6 +46,43 @@ export function ActionPreview({
     return value.replace('.', ',')
   }
 
+  const valueContent = sharesString ? (
+    <span className="text-foreground cursor-help" title={formatFullNumber(sharesString)}>
+      {formatCompactNumber(sharesString)} {tokenSymbol}
+    </span>
+  ) : (
+    <span className="text-foreground">
+      {receivedShares.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 6,
+      })}{" "}
+      {tokenSymbol}
+    </span>
+  )
+
+  const compactValueContent = sharesString ? (
+    <span className="text-foreground">
+      {formatFullNumber(sharesString)} {tokenSymbol}
+    </span>
+  ) : (
+    <span className="text-foreground">
+      {receivedShares.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 6,
+      })}{" "}
+      {tokenSymbol}
+    </span>
+  )
+
+  if (compact) {
+    return (
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>You will receive:</span>
+        <span className="font-mono font-semibold text-foreground">{compactValueContent}</span>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col space-y-4">
       <h3 className="text-lg font-medium text-foreground">{title}</h3>
@@ -51,21 +90,7 @@ export function ActionPreview({
         <div className="flex justify-between">
           <p className="text-sm text-muted-foreground">You will receive:</p>
           <div className="font-mono text-sm font-semibold text-foreground flex flex-col items-end">
-            <div>
-              {sharesString ? (
-                <span className="text-foreground cursor-help" title={formatFullNumber(sharesString)}>
-                  {formatCompactNumber(sharesString)} {tokenSymbol}
-                </span>
-              ) : (
-                <span className="text-foreground">
-                  {receivedShares.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 6,
-                  })}{' '}
-                  {tokenSymbol}
-                </span>
-              )}
-            </div>
+            <div>{valueContent}</div>
             {rawValue && (
               <span className="text-[10px] text-muted-foreground mt-1 font-mono">{rawValue}</span>
             )}
